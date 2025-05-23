@@ -1,0 +1,3028 @@
+---
+title: "snRNASeq new analysis"
+output: html_document
+date: ""
+---
+```{r}
+library(Seurat) #version 4.4.0
+options(Seurat.object.assay.version = 4.4)
+library(BiocManager)
+library(remotes)
+library(devtools)
+library(viridisLite)
+library(RColorBrewer)
+library(harmony)
+library(viridis)
+library(ggplot2)
+library(slingshot)
+library(ggbeeswarm)
+library(ggthemes)
+library(Polychrome)
+library(CellChat)
+library(DESeq2)
+library(scCustomize)
+library(tidyverse)
+library(EnhancedVolcano)
+library(ALRA)
+library(ComplexHeatmap)
+library(monocle3)
+```
+
+```{r}
+MG_TO74.data <- Read10X(data.dir ="/path/to/")
+MG_TO74 <- CreateSeuratObject(counts = MG_TO74.data, project = "MG_TO74", min.cells = 3, min.features = 200)
+MG_TO81.data <- Read10X(data.dir ="/path/to/")
+MG_TO81 <- CreateSeuratObject(counts = MG_TO81.data, project = "MG_TO81", min.cells = 3, min.features = 200)
+MG_TO82.data <- Read10X(data.dir ="/path/to/")
+MG_TO82 <- CreateSeuratObject(counts = MG_TO82.data, project = "MG_TO82", min.cells = 3, min.features = 200)
+```
+
+```{r}
+Flipped_TO74.data <- Read10X(data.dir ="/path/to/")
+Flipped_TO74 <- CreateSeuratObject(counts =Flipped_TO74.data, project = "Flipped_TO74", min.cells = 3, min.features = 200)
+Flipped_TO81.data <- Read10X(data.dir ="/path/to/")
+Flipped_TO81 <- CreateSeuratObject(counts = Flipped_TO81.data, project = "Flipped_TO81", min.cells = 3, min.features = 200)
+Flipped_TO82.data <- Read10X(data.dir ="/path/to/")
+Flipped_TO82 <- CreateSeuratObject(counts = Flipped_TO82.data, project = "Flipped_TO82", min.cells = 3, min.features = 200)
+```
+
+```{r}
+EVT_TO74.data <- Read10X(data.dir ="/path/to/")
+EVT_TO74 <- CreateSeuratObject(counts =EVT_TO74.data, project = "EVT_TO74", min.cells = 3, min.features = 200)
+EVT_TO81.data <- Read10X(data.dir ="/path/to/")
+EVT_TO81 <- CreateSeuratObject(counts = EVT_TO81.data, project = "EVT_TO81", min.cells = 3, min.features = 200)
+EVT_TO82.data <- Read10X(data.dir ="/path/to/")
+EVT_TO82 <- CreateSeuratObject(counts = EVT_TO82.data, project = "EVT_TO82", min.cells = 3, min.features = 200)
+```
+
+```{r}
+apply(
+ MG_TO74@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> MG_TO74$Percent.Largest.Gene
+MG_TO74[["percent.mt"]] <- PercentageFeatureSet(MG_TO74, pattern = "^MT-")
+MG_TO74[["percent.rb"]] <- PercentageFeatureSet(MG_TO74, pattern = "^RP[SL]")
+
+apply(
+ MG_TO81@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> MG_TO81$Percent.Largest.Gene
+MG_TO81[["percent.mt"]] <- PercentageFeatureSet(MG_TO81, pattern = "^MT-")
+MG_TO81[["percent.rb"]] <- PercentageFeatureSet(MG_TO81, pattern = "^RP[SL]")
+
+apply(
+ MG_TO82@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> MG_TO82$Percent.Largest.Gene
+MG_TO82[["percent.mt"]] <- PercentageFeatureSet(MG_TO82, pattern = "^MT-")
+MG_TO82[["percent.rb"]] <- PercentageFeatureSet(MG_TO82, pattern = "^RP[SL]")
+
+apply(
+ Flipped_TO74@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> Flipped_TO74$Percent.Largest.Gene
+Flipped_TO74[["percent.mt"]] <- PercentageFeatureSet(Flipped_TO74, pattern = "^MT-")
+Flipped_TO74[["percent.rb"]] <- PercentageFeatureSet(Flipped_TO74, pattern = "^RP[SL]")
+
+apply(
+ Flipped_TO81@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> Flipped_TO81$Percent.Largest.Gene
+Flipped_TO81[["percent.mt"]] <- PercentageFeatureSet(Flipped_TO81, pattern = "^MT-")
+Flipped_TO81[["percent.rb"]] <- PercentageFeatureSet(Flipped_TO81, pattern = "^RP[SL]")
+
+apply(
+ Flipped_TO82@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> Flipped_TO82$Percent.Largest.Gene
+Flipped_TO82[["percent.mt"]] <- PercentageFeatureSet(Flipped_TO82, pattern = "^MT-")
+Flipped_TO82[["percent.rb"]] <- PercentageFeatureSet(Flipped_TO82, pattern = "^RP[SL]")
+
+apply(
+ EVT_TO74@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> EVT_TO74$Percent.Largest.Gene
+EVT_TO74[["percent.mt"]] <- PercentageFeatureSet(EVT_TO74, pattern = "^MT-")
+EVT_TO74[["percent.rb"]] <- PercentageFeatureSet(EVT_TO74, pattern = "^RP[SL]")
+
+apply(
+ EVT_TO81@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> EVT_TO81$Percent.Largest.Gene
+EVT_TO81[["percent.mt"]] <- PercentageFeatureSet(EVT_TO81, pattern = "^MT-")
+EVT_TO81[["percent.rb"]] <- PercentageFeatureSet(EVT_TO81, pattern = "^RP[SL]")
+
+apply(
+ EVT_TO82@assays$RNA@counts,
+  2,
+  function(x)(100*max(x))/sum(x)
+) -> EVT_TO82$Percent.Largest.Gene
+EVT_TO82[["percent.mt"]] <- PercentageFeatureSet(EVT_TO82, pattern = "^MT-")
+EVT_TO82[["percent.rb"]] <- PercentageFeatureSet(EVT_TO82, pattern = "^RP[SL]")
+```
+
+```{r}
+VlnPlot(
+  object = MG_TO74,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = MG_TO81,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = MG_TO82,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+```
+
+```{r}
+VlnPlot(
+  object = Flipped_TO74,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = Flipped_TO81,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = Flipped_TO82,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+```
+
+```{r}
+VlnPlot(
+  object = EVT_TO74,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = EVT_TO81,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = EVT_TO82,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+```
+
+#QC
+```{r}
+subset(
+     MG_TO74,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 8000 & nCount_RNA<60000 & percent.rb<3 &
+       percent.mt<7.5)-> MG_TO74
+
+subset(
+     MG_TO81,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 10000 & nCount_RNA<60000 & percent.rb<3 &
+       percent.mt<10)-> MG_TO81
+
+subset(
+     MG_TO82,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 10000 & nCount_RNA<60000 &
+       percent.rb<3 &
+       percent.mt<7.5)-> MG_TO82
+```
+
+```{r}
+subset(
+     Flipped_TO74,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 10000 & nCount_RNA<60000 & percent.rb<3 &
+       percent.mt<6)-> Flipped_TO74
+
+subset(
+     Flipped_TO81,
+     nFeature_RNA>900 & 
+         nFeature_RNA < 10000 & nCount_RNA<60000 & percent.rb<3 &
+       percent.mt<6)-> Flipped_TO81
+
+subset(
+     Flipped_TO82,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 10000 & nCount_RNA<60000 &
+       percent.rb<3 &
+       percent.mt<5)-> Flipped_TO82
+```
+
+```{r}
+subset(
+     EVT_TO74,
+     nFeature_RNA>600 & 
+         nFeature_RNA < 10000 & nCount_RNA<60000 & percent.rb<7.5 &
+       percent.mt<5)-> EVT_TO74
+
+subset(
+     EVT_TO81,
+     nFeature_RNA>900 & 
+         nFeature_RNA < 10000 & nCount_RNA<75000 & percent.rb<3 &
+       percent.mt<5)-> EVT_TO81
+
+subset(
+     EVT_TO82,
+     nFeature_RNA>900 & 
+         nFeature_RNA < 7500 & nCount_RNA<50000 &
+       percent.rb<3 &
+       percent.mt<5)-> EVT_TO82
+```
+
+```{r}
+MG_TO <- merge(MG_TO74, y = c(MG_TO81, MG_TO82), add.cell.ids = c("MG.1", "MG.2", "MG.3"), project = "MG")
+Flipped_TO <- merge(Flipped_TO74, y = c(Flipped_TO81, Flipped_TO82), add.cell.ids = c("Flipped.1", "Flipped.2", "Flipped.3"), project = "Flipped")
+EVT_TO <- merge(EVT_TO74, y = c(EVT_TO81, EVT_TO82), add.cell.ids = c("EVT.1", "EVT.2", "EVT.3"), project = "EVT")
+```
+
+```{r}
+MG_TO.edit <- MG_TO[!grepl("MALAT1", rownames (MG_TO)),]
+Flipped_TO.edit <- Flipped_TO[!grepl("MALAT1", rownames (Flipped_TO)),]
+EVT_TO.edit <- EVT_TO[!grepl("MALAT1", rownames (EVT_TO)),]
+```
+
+```{r}
+dim(MG_TO)
+```
+```{r}
+dim(MG_TO.edit)
+```
+
+```{r}
+dim(Flipped_TO)
+```
+```{r}
+dim(Flipped_TO.edit)
+```
+
+```{r}
+dim(EVT_TO)
+```
+```{r}
+dim(EVT_TO.edit)
+```
+
+```{r}
+library(biomaRt)
+mart <- useMart("ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl")
+genes.table <- try(biomaRt::getBM(attributes = c("ensembl_gene_id", "external_gene_name",
+        "description", "gene_biotype", "chromosome_name", "start_position"), mart = mart,
+        useCache = F))
+
+genes.table <- genes.table[genes.table$external_gene_name %in% rownames(MG_TO),
+]
+chrY.gene = genes.table$external_gene_name[genes.table$chrosmosome_name == "Y"]
+MG_TO$pct_chrY = colSums(MG_TO@assays$RNA@counts[chrY.gene, ])/colSums(MG_TO@assays$RNA@counts)
+chrX.gene = genes.table$external_gene_name[genes.table$chromosome_name == "X"]
+MG_TO$pct_chrX = colSums(MG_TO@assays$RNA@counts[chrX.gene, ])/colSums(MG_TO@assays$RNA@counts)
+
+genes.table <- genes.table[genes.table$external_gene_name %in% rownames(Flipped_TO),
+]
+chrY.gene = genes.table$external_gene_name[genes.table$chromosome_name == "Y"]
+Flipped_TO$pct_chrY = colSums(Flipped_TO@assays$RNA@counts[chrY.gene, ])/colSums(Flipped_TO@assays$RNA@counts)
+chrX.gene = genes.table$external_gene_name[genes.table$chromosome_name == "X"]
+Flipped_TO$pct_chrX = colSums(Flipped_TO@assays$RNA@counts[chrX.gene, ])/colSums(Flipped_TO@assays$RNA@counts)
+
+genes.table <- genes.table[genes.table$external_gene_name %in% rownames(EVT_TO),
+]
+chrY.gene = genes.table$external_gene_name[genes.table$chromosome_name == "Y"]
+EVT_TO$pct_chrY = colSums(EVT_TO@assays$RNA@counts[chrY.gene, ])/colSums(EVT_TO@assays$RNA@counts)
+chrX.gene = genes.table$external_gene_name[genes.table$chromosome_name == "X"]
+EVT_TO$pct_chrX = colSums(EVT_TO@assays$RNA@counts[chrX.gene, ])/colSums(EVT_TO@assays$RNA@counts)
+
+```
+
+```{r}
+VlnPlot(MG_TO, features = c("pct_chrX", "pct_chrY"))
+VlnPlot(Flipped_TO, features = c("pct_chrX", "pct_chrY"))
+VlnPlot(EVT_TO, features = c("pct_chrX", "pct_chrY"))
+```
+
+****************************
+****Individual analyses*****
+****************************
+
+```{r}
+MG.list <- SplitObject(MG_TO, split.by = "orig.ident")
+MG.list <- lapply(MG.list, FUN = SCTransform, assay = 'RNA', new.assay.name = 'SCT',  vars.to.regress = c('nFeature_RNA', 'nCount_RNA', 'percent.mt', 'percent.rb', 'pct_chrX', 'pct_chrY'), vst.flavor = "v2")
+
+Flipped.list <- SplitObject(Flipped_TO, split.by = "orig.ident")
+Flipped.list <- lapply(Flipped.list, FUN = SCTransform, assay = 'RNA', new.assay.name = 'SCT',  vars.to.regress = c('nFeature_RNA', 'nCount_RNA', 'percent.mt', 'percent.rb', 'pct_chrX', 'pct_chrY'), vst.flavor = "v2")
+
+EVT.list <- SplitObject(EVT_TO, split.by = "orig.ident")
+EVT.list <- lapply(EVT.list, FUN = SCTransform, assay = 'RNA', new.assay.name = 'SCT',  vars.to.regress = c( 'nFeature_RNA', 'nCount_RNA', 'percent.mt', 'percent.rb', 'pct_chrX', 'pct_chrY'), vst.flavor = "v2")
+
+```
+
+```{r}
+MGfeatures <- SelectIntegrationFeatures(object.list = MG.list, nfeatures = 3000)
+MG.list <- PrepSCTIntegration(object.list = MG.list, anchor.features = MGfeatures)
+MG.anchors <- FindIntegrationAnchors(object.list = MG.list, normalization.method = "SCT", anchor.features = MGfeatures)
+MG.int <- IntegrateData(anchorset = MG.anchors, normalization.method = "SCT")
+
+Flippedfeatures <- SelectIntegrationFeatures(object.list = Flipped.list, nfeatures = 3000)
+Flipped.list <- PrepSCTIntegration(object.list = Flipped.list, anchor.features = Flippedfeatures)
+Flipped.anchors <- FindIntegrationAnchors(object.list = Flipped.list, normalization.method = "SCT", anchor.features = Flippedfeatures)
+Flipped.int <- IntegrateData(anchorset = Flipped.anchors, normalization.method = "SCT")
+
+EVTfeatures <- SelectIntegrationFeatures(object.list = EVT.list, nfeatures = 3000)
+EVT.list <- PrepSCTIntegration(object.list = EVT.list, anchor.features = EVTfeatures)
+EVT.anchors <- FindIntegrationAnchors(object.list = EVT.list, normalization.method = "SCT", anchor.features = EVTfeatures)
+EVT.int <- IntegrateData(anchorset = EVT.anchors, normalization.method = "SCT")
+
+```
+
+```{r}
+MG.int <- RunPCA(MG.int, verbose = TRUE)
+ElbowPlot(MG.int, reduction = "pca", ndims = 50)
+Seurat::DimHeatmap(MG.int, dims = 1:10, cells = 100, balanced = TRUE)
+
+Flipped.int <- RunPCA(Flipped.int, verbose = TRUE)
+ElbowPlot(Flipped.int, reduction = "pca", ndims = 50)
+Seurat::DimHeatmap(Flipped.int, dims = 1:10, cells = 100, balanced = TRUE)
+
+EVT.int <- RunPCA(EVT.int, verbose = TRUE)
+ElbowPlot(EVT.int, reduction = "pca", ndims = 50)
+Seurat::DimHeatmap(EVT.int, dims = 1:10, cells = 100, balanced = TRUE)
+```
+
+```{r}
+MG.int <- RunUMAP(MG.int, reduction = "pca", dims = 1:40)
+Flipped.int <- RunUMAP(Flipped.int, reduction = "pca", dims = 1:40)
+EVT.int <- RunUMAP(EVT.int, reduction = "pca", dims = 1:40)
+```
+
+```{r}
+DimPlot(MG.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+DimPlot(Flipped.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+DimPlot(EVT.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+```
+
+```{r}
+MG.int <- FindNeighbors(MG.int, reduction = "pca", dims = 1:40)
+MG.int <- FindClusters(MG.int, resolution = 0.6)
+
+Flipped.int <- FindNeighbors(Flipped.int, reduction = "pca", dims = 1:40)
+Flipped.int <- FindClusters(Flipped.int, resolution = 0.6)
+
+EVT.int <- FindNeighbors(EVT.int, reduction = "pca", dims = 1:40)
+EVT.int <- FindClusters(EVT.int, resolution = 0.6)
+```
+
+```{r}
+DimPlot(MG.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T)
+DimPlot(MG.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+
+DimPlot(Flipped.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T)
+DimPlot(Flipped.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+
+DimPlot(EVT.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T)
+DimPlot(EVT.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+```
+
+```{r}
+DefaultAssay(MG.int) <- "RNA"
+MG.int<-NormalizeData(MG.int)
+MG.int<-ScaleData(MG.int)
+
+DefaultAssay(Flipped.int) <- "RNA"
+Flipped.int<-NormalizeData(Flipped.int)
+Flipped.int<-ScaleData(Flipped.int)
+
+DefaultAssay(EVT.int) <- "RNA"
+EVT.int<-NormalizeData(EVT.int)
+EVT.int<-ScaleData(EVT.int)
+
+DefaultAssay(MG.int) <- "SCT"
+MG.alra<-RunALRA(MG.int)
+
+DefaultAssay(Flipped.int) <- "SCT"
+Flipped.alra<-RunALRA(Flipped.int)
+
+DefaultAssay(EVT.int) <- "SCT"
+EVT.alra<-RunALRA(EVT.int)
+
+saveRDS(MG.alra, file = "MG.int.ALRA.rds")
+saveRDS(Flipped.alra, file = "Flipped.int.ALRA.rds")
+saveRDS(EVT.alra, file = "EVT.int.ALRA.rds")
+```
+
+#Harmony on combined files
+************************
+*****MG vs. Flipped*****
+************************
+
+```{r}
+MG.alra <- readRDS("<replace_with_path>")
+Flipped.alra <- readRDS("<replace_with_path>")
+
+MG.alra$stim <- "MG"
+Flipped.alra$stim <- "Flipped"
+FlippedvsMG <- merge(MG.alra, y = c(Flipped.alra), project = "Flipped vs MG")
+```
+
+```{r}
+VariableFeatures(FlippedvsMG[["SCT"]]) <- rownames(FlippedvsMG[["SCT"]]@scale.data)
+
+FlippedvsMG.harm <- RunPCA(FlippedvsMG, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(FlippedvsMG.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+```
+
+```{r}
+FlippedvsMG.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+FlippedvsMG.harm  <- FindNeighbors(FlippedvsMG.harm, reduction = "harmony")
+DefaultAssay(FlippedvsMG.harm)  <- "SCT"
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = FlippedvsMG.harm,
+    reduction = "harmony",
+    resolution = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+library(clustree)
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+```{r}
+FlippedvsMG.harm <- FindClusters(FlippedvsMG.harm, reduction = "harmony", resolution = 0.5)
+```
+
+#res 0.5
+```{r}
+DimPlot(FlippedvsMG.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(FlippedvsMG.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+saveRDS(FlippedvsMG.harm, file = "FlippedvsvsMG.harm.11.20.23.rds")
+```
+
+```{r}
+DefaultAssay(FlippedvsMG.harm)  <- "RNA"
+FlippedvsMG.harm.markers <- FindAllMarkers(object = FlippedvsMG.harm, thresh.use = 0.25, min.pct = 0.25, only.pos = TRUE)
+```
+
+```{r}
+setwd("/path/to/")
+write.csv(FlippedvsMG.harm.markers, file="FlippedvsMG.harm.markers.0.5res.csv")
+```
+
+```{r}
+DefaultAssay(FlippedvsMG.harm)  <- "alra"
+DotPlot(FlippedvsMG.harm,, features = all6, dot.scale = 7, scale = T, col.min = 0, col.max = 1) + theme(legend.direction = "vertical")+   theme(legend.position="bottom")+ theme(legend.title = element_text(color = "black", size = 10), legend.text = element_text(color = "black", size = 10))+ theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + scale_color_gradientn(colors = (brewer.pal(n = 11, name = "OrRd"))) +guides(col = guide_colourbar(title = "Mean expression")) + labs(size="% cells") + RotatedAxis() +     geom_point(aes(size=pct.exp), shape = 21, colour="black", stroke=0.5)  +guides(size=guide_legend(override.aes=list(shape=21, colour="black", fill="white")))
+```
+
+```{r}
+DotPlot(FlippedvsMG.harm,, features = TB, dot.scale = 7, scale = T, col.min = 0, col.max = 1) + theme(legend.direction = "vertical")+   theme(legend.position="bottom")+ theme(legend.title = element_text(color = "black", size = 10), legend.text = element_text(color = "black", size = 10))+ theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + scale_color_gradientn(colors = (brewer.pal(n = 11, name = "OrRd"))) +guides(col = guide_colourbar(title = "Mean expression")) + labs(size="% cells") + RotatedAxis() +     geom_point(aes(size=pct.exp), shape = 21, colour="black", stroke=0.5)  +guides(size=guide_legend(override.aes=list(shape=21, colour="black", fill="white")))
+```
+
+```{r}
+spectral_palette <-hcl.colors(10, palette = "viridis", alpha = NULL, rev = FALSE, fixup = TRUE)
+custom_palette <- c('gray90', spectral_palette)
+custom_palette2 <- c('#440154', spectral_palette)
+```
+
+```{r}
+FeaturePlot(FlippedvsMG.harm, reduction = "umap", pt.size = 1.5, feature = c("HOPX", "ERVW-1"), ncol=2, min.cutoff = 0, max.cutoff = 3, cols = c(custom_palette2))
+FeaturePlot(FlippedvsMG.harm, reduction = "umap", pt.size = 1.5, feature = c("ERVE-1", "ERVV-1"), ncol=2, min.cutoff = 0, max.cutoff = 2, cols = c(custom_palette2))
+```
+
+```{r}
+FeaturePlot(FlippedvsMG.harm, reduction = "umap", pt.size = 1.5, feature = c("CDH1", "YAP1"), ncol=2, min.cutoff = 0, max.cutoff = 2, cols = c(custom_palette2))
+FeaturePlot(FlippedvsMG.harm, reduction = "umap", pt.size = 1.5, feature = c("MKI67", "TP63"), ncol=2, min.cutoff = 0, max.cutoff = 2, cols = c(custom_palette2))
+```
+
+```{r}
+DimPlot(FlippedvsMG.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(FlippedvsMG.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+pt <- table(Idents(FlippedvsMG.harm), (FlippedvsMG.harm$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = brewer.pal(12, "Paired")) +
+  theme(legend.title = element_blank())
+```
+
+##Colors in manuscript###
+
+```{r}
+pt <- table(Idents(FlippedvsMG), (FlippedvsMG$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+    theme_bw(base_size = 15) +
+    geom_col(position = "fill", width = 0.5) +
+    xlab("Sample") +
+    ylab("Proportion") +
+    scale_fill_manual(values = c("VCTp" ="#FF7300", "VCT-2" = "#CC3D7D", "VCT-1"= "#F64DFF","VCTccc" ="#99173E", "pre-STB" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"))
+```
+
+```{r}
+DimPlot(FlippedvsMG, reduction = "umap", pt.size = 1, label.size = 5, label=F, cols=c(c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTB-pf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969")))
+```
+
+```{r}
+pt <- table(Idents(FlippedvsMG), (FlippedvsMG$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+    theme_bw(base_size = 15) +
+    geom_col(position = "fill", width = 0.5) +
+    xlab("Sample") +
+    ylab("Proportion") +
+    scale_fill_manual(values = c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTB-pf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"))
+```
+
+```{r}
+STB <- subset(FlippedvsMG.harm, idents = c("pre-STB", "STB-1", "STB-2", "STB-3"))
+DimPlot(STB, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+```
+
+```{r}
+saveRDS(STB, file = "STB subset of Flipped vs MG.rds")
+```
+
+```{r}
+pt <- table(Idents(STB), (STB$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = brewer.pal(12, "Paired")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+cluster.averages <- AverageExpression(STB, return.seurat = TRUE)
+```
+
+```{r}
+DoHeatmap(cluster.averages, features = unlist(TopFeatures(STB[["pca"]], balanced = TRUE)), size = 3, draw.lines = FALSE)
+```
+
+************
+***DeSeq2***
+************
+```{r}
+
+avg.FlippedvsMG.harm.All <- as.data.frame(AggregateExpression(FlippedvsMG.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+colnames(avg.FlippedvsMG.harm.All) <- gsub("RNA.","",colnames(avg.FlippedvsMG.harm.All))
+avg.FlippedvsMG.harm.All$gene <- rownames(avg.FlippedvsMG.harm.All)
+
+cts <- avg.FlippedvsMG.harm.All[,1:(ncol(avg.FlippedvsMG.harm.All)-1)]
+coldata <- data.frame(Sample = colnames(avg.FlippedvsMG.harm.All[,1:(ncol(avg.FlippedvsMG.harm.All)-1)]),
+                      Condition = c("Flipped",
+                                    "Flipped",
+                                    "Flipped",
+                                    "MG",
+                                    "MG",
+                                    "MG"))
+
+avg.FlippedvsMG.harm.All.dds <- DESeqDataSetFromMatrix(countData=cts,
+                                  colData=coldata,
+                                  design=~Condition)
+
+avg.FlippedvsMG.harm.All.dds <- DESeq(avg.FlippedvsMG.harm.All.dds)
+
+avg.FlippedvsMG.dds.Res <- results(avg.FlippedvsMG.harm.All.dds,contrast = c("Condition","Flipped","MG"))
+
+write.csv(avg.FlippedvsMG.dds.Res, file="avg.FlippedvsMG.dds.Res.11.21.23.csv")
+```
+
+### Write Functions to Perform Pseudobulk on all clusters in a seurat object
+```{r}
+
+Perform.Pseudobulk <- function(FlippedvsMG.harm, CountsDir, ResultsDir, Conditions, Contrast, SubsetName) {
+  dir.create(CountsDir, showWarnings = FALSE)
+  dir.create(ResultsDir, showWarnings = FALSE)
+  
+  AggCounts <- as.data.frame(AggregateExpression(FlippedvsMG.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+  colnames(AggCounts) <- gsub("RNA.","",colnames(AggCounts))
+  AggCounts$gene <- rownames(AggCounts)
+  setwd(CountsDir)
+  write.table(as.data.frame(AggCounts), file = "FlippedvsMG_Aggregated_Counts.txt", sep="\t")
+  
+  cts <- AggCounts[,1:(ncol(AggCounts)-1)]
+  coldata <- data.frame(Sample = colnames(AggCounts[,1:(ncol(AggCounts)-1)]),
+                        Condition = Conditions
+  )
+  
+  dds <- DESeqDataSetFromMatrix(countData=cts,
+                                    colData=coldata,
+                                    design=~Condition)
+  
+  dds <- DESeq(dds)
+  
+  dds.Res <- results(dds,contrast = c("Condition",Contrast[1],Contrast[2]))
+  
+  setwd(ResultsDir)
+  write.table(as.data.frame(dds.Res), file = paste(sub("/","-",SubsetName),"_DESeq2_Res.txt", sep = ""), sep="\t")
+}
+
+Perform.Pseudobulk.On.All.Clusters <- function(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast){
+    #Get Cluster Names
+    clusters <- sort(as.character(unique(SeuratObj@active.ident)))
+
+    #Perform Pseudobulk
+    Perform.Pseudobulk(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast, "All_Clusters")
+    for (i in 1:length(clusters)){
+      Perform.Pseudobulk(subset(SeuratObj, idents = clusters[i]), CountsDir, ResultsDir, Conditions, Contrast, clusters[i])
+    }
+}
+```
+
+# Perform pseudobulk on all clusters
+```{r}
+Perform.Pseudobulk.On.All.Clusters(FlippedvsMG.harm,
+                                   "/path/to/ Flipped vs MG/Counts Flipped vs MG",
+                                   "/path/to/ Flipped vs MG/Results Flipped vs MG",
+                                    Conditions= c( "Flipped",
+                                    "Flipped",
+                                    "Flipped",
+                                    "MG",
+                                    "MG",
+                                    "MG"),
+                                   Contrast = c("Flipped","MG")
+                                   )
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2 <- function(InputDir, ResultsDir, log2.fc, padj) {
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    DESeqData <- DESeqData[abs(DESeqData$log2FoldChange) > log2.fc,]
+    DESeqData <- DESeqData[DESeqData$padj < padj,]
+    DESeqData <- DESeqData[complete.cases(DESeqData),]
+    DESeqData <- DESeqData[order(DESeqData$log2FoldChange),]
+    na.omit(DESeqData)
+    setwd(ResultsDir)
+    write.table(as.data.frame(DESeqData), file = paste(sub(".txt","",FilesNames[i]),"_Sig.txt", sep = ""), sep="\t")
+  }
+}
+
+Make.Nice.Volcano.Plot.PDF <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    pdf(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.pdf", sep = ""),
+        width = 8.5,
+        height = 11)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+
+Make.Nice.Volcano.Plot.PNG <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    png(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.png", sep = ""),
+        width = 850,
+        height = 1100)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2("/path/to/ Flipped vs MG/Results Flipped vs MG",
+                           "/path/to/ Flipped vs MG/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/ Flipped vs MG/Results Flipped vs MG",
+                           "/path/to/ Flipped vs MG/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/ Flipped vs MG/Results Flipped vs MG",
+                           "/path/to/ Flipped vs MG/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+
+************************
+*****MG vs. EVT*****
+************************
+
+```{r}
+MG.alra <- readRDS("<replace_with_public_path>")
+EVT.alra <- readRDS("<replace_with_public_path>")
+
+MG.alra$stim <- "MG"
+EVT.alra$stim <- "EVT"
+EVTvsMG <- merge(MG.alra, y = c(EVT.alra), project = "EVT vs MG")
+```
+
+```{r}
+VariableFeatures(EVTvsMG[["SCT"]]) <- rownames(EVTvsMG[["SCT"]]@scale.data)
+
+EVTvsMG.harm <- RunPCA(EVTvsMG, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(EVTvsMG.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+```
+
+```{r}
+EVTvsMG.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+EVTvsMG.harm  <- FindNeighbors(EVTvsMG.harm, reduction = "harmony")
+DefaultAssay(EVTvsMG.harm)  <- "SCT"
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = EVTvsMG.harm,
+    reduction = "harmony",
+    resolution = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+library(clustree)
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+```{r}
+EVTvsMG.harm <- FindClusters(EVTvsMG.harm, reduction = "harmony", resolution = 0.5)
+```
+
+#res 0.5
+```{r}
+DimPlot(EVTvsMG.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(EVTvsMG.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+DefaultAssay(EVTvsMG.harm)  <- "alra"
+DotPlot(EVTvsMG.harm, features = all6, dot.scale = 7, scale = T, col.min = 0, col.max = 1) + theme(legend.direction = "vertical")+   theme(legend.position="bottom")+ theme(legend.title = element_text(color = "black", size = 10), legend.text = element_text(color = "black", size = 10))+ theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + scale_color_gradientn(colors = (brewer.pal(n = 11, name = "OrRd"))) +guides(col = guide_colourbar(title = "Mean expression")) + labs(size="% cells") + RotatedAxis() +     geom_point(aes(size=pct.exp), shape = 21, colour="black", stroke=0.5)  +guides(size=guide_legend(override.aes=list(shape=21, colour="black", fill="white")))
+```
+
+```{r}
+saveRDS(EVTvsMG.harm, file = "EVTvsMG.harm.11.21.23.rds")
+```
+
+```{r}
+DefaultAssay(EVTvsMG.harm)  <- "alra"
+FeaturePlot(EVTvsMG.harm, reduction = "umap", pt.size = 1.5, feature = c("HOPX", "ERVW-1"), ncol=2, min.cutoff = 0, max.cutoff = 3, cols = c(custom_palette2))
+FeaturePlot(EVTvsMG.harm, reduction = "umap", pt.size = 1.5, feature = c("MMP2", "HLA-G"), ncol=2, min.cutoff = 0, max.cutoff = 2, cols = c(custom_palette2))
+```
+
+```{r}
+DimPlot(EVTvsMG.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(EVTvsMG.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+ saveRDS(EVTvsMG.harm, file = "EVTvsMG.harm.named clusters..rds")
+```
+
+```{r}
+EVT <- subset(EVTvsMG.harm, idents = c("iEVT", "EVT-1", "EVT-2"))
+DimPlot(EVT, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+```
+
+```{r}
+saveRDS(EVT, file = "EVT subset of EVT vs MG.rds")
+```
+
+#make bar graph of enrichment
+```{r}
+pt <- table(Idents(EVTvsMG.harm), (EVTvsMG.harm$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = brewer.pal(12, "Paired")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+cluster.averages <- AverageExpression(EVTvsMG.harm, return.seurat = TRUE)
+CellScatter(cluster.averages, cell1 = "EVT-1", cell2 = "EVT-2")
+```
+
+```{r}
+DoHeatmap(cluster.averages, features = unlist(TopFeatures(EVTvsMG.harm[["pca"]], balanced = TRUE)), size = 3, draw.lines = FALSE)
+```
+
+**********************
+***DeSeq2 MG vs EVT***
+**********************
+```{r}
+
+avg.EVTvsMG.harm.All <- as.data.frame(AggregateExpression(EVTvsMG.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+colnames(avg.EVTvsMG.harm.All) <- gsub("RNA.","",colnames(avg.EVTvsMG.harm.All))
+avg.EVTvsMG.harm.All$gene <- rownames(avg.EVTvsMG.harm.All)
+
+cts <- avg.EVTvsMG.harm.All[,1:(ncol(avg.EVTvsMG.harm.All)-1)]
+coldata <- data.frame(Sample = colnames(avg.EVTvsMG.harm.All[,1:(ncol(avg.EVTvsMG.harm.All)-1)]),
+                      Condition = c("EVT",
+                                    "EVT",
+                                    "EVT",
+                                    "MG",
+                                    "MG",
+                                    "MG"))
+
+avg.EVTvsMG.harm.All.dds <- DESeqDataSetFromMatrix(countData=cts,
+                                  colData=coldata,
+                                  design=~Condition)
+
+avg.EVTvsMG.harm.All.dds <- DESeq(avg.EVTvsMG.harm.All.dds)
+
+avg.EVTvsMG.harm.All.dds.Res <- results(avg.EVTvsMG.harm.All.dds,contrast = c("Condition","EVT","MG"))
+
+write.csv(avg.EVTvsMG.harm.All.dds.Res, file="avg.EVTvsMG.dds.Res.11.21.23.csv")
+```
+
+```{r}
+
+Perform.Pseudobulk <- function(EVTvsMG.harm, CountsDir, ResultsDir, Conditions, Contrast, SubsetName) {
+  dir.create(CountsDir, showWarnings = FALSE)
+  dir.create(ResultsDir, showWarnings = FALSE)
+  
+  AggCounts <- as.data.frame(AggregateExpression(EVTvsMG.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+  colnames(AggCounts) <- gsub("RNA.","",colnames(AggCounts))
+  AggCounts$gene <- rownames(AggCounts)
+  setwd(CountsDir)
+  write.table(as.data.frame(AggCounts), file = "EVTvsMG_Aggregated_Counts.txt", sep="\t")
+  
+  cts <- AggCounts[,1:(ncol(AggCounts)-1)]
+  coldata <- data.frame(Sample = colnames(AggCounts[,1:(ncol(AggCounts)-1)]),
+                        Condition = Conditions
+  )
+  
+  dds <- DESeqDataSetFromMatrix(countData=cts,
+                                    colData=coldata,
+                                    design=~Condition)
+  
+  dds <- DESeq(dds)
+  
+  dds.Res <- results(dds,contrast = c("Condition",Contrast[1],Contrast[2]))
+  
+  setwd(ResultsDir)
+  write.table(as.data.frame(dds.Res), file = paste(sub("/","-",SubsetName),"_DESeq2_Res.txt", sep = ""), sep="\t")
+}
+
+Perform.Pseudobulk.On.All.Clusters <- function(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast){
+    #Get Cluster Names
+    clusters <- sort(as.character(unique(SeuratObj@active.ident)))
+
+    #Perform Pseudobulk
+    Perform.Pseudobulk(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast, "All_Clusters")
+    for (i in 1:length(clusters)){
+      Perform.Pseudobulk(subset(SeuratObj, idents = clusters[i]), CountsDir, ResultsDir, Conditions, Contrast, clusters[i])
+    }
+}
+```
+
+# Perform pseudobulk on all clusters
+```{r}
+Perform.Pseudobulk.On.All.Clusters(EVTvsMG.harm,
+                                   "/path/to/ EVT vs MG/Counts EVT vs MG",
+                                   "/path/to/ EVT vs MG/Results EVT vs MG",
+                                    Conditions= c( "EVT",
+                                    "EVT",
+                                    "EVT",
+                                    "MG",
+                                    "MG",
+                                    "MG"),
+                                   Contrast = c("EVT","MG")
+                                   )
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2 <- function(InputDir, ResultsDir, log2.fc, padj) {
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    DESeqData <- DESeqData[abs(DESeqData$log2FoldChange) > log2.fc,]
+    DESeqData <- DESeqData[DESeqData$padj < padj,]
+    DESeqData <- DESeqData[complete.cases(DESeqData),]
+    DESeqData <- DESeqData[order(DESeqData$log2FoldChange),]
+    na.omit(DESeqData)
+    setwd(ResultsDir)
+    write.table(as.data.frame(DESeqData), file = paste(sub(".txt","",FilesNames[i]),"_Sig.txt", sep = ""), sep="\t")
+  }
+}
+
+Make.Nice.Volcano.Plot.PDF <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    pdf(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.pdf", sep = ""),
+        width = 8.5,
+        height = 11)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+
+Make.Nice.Volcano.Plot.PNG <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    png(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.png", sep = ""),
+        width = 850,
+        height = 1100)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2("/path/to/ EVT vs MG/Results EVT vs MG",
+                           "/path/to/ EVT vs MG/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/ EVT vs MG/Results EVT vs MG",
+                           "/path/to/ EVT vs MG/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/ EVT vs MG/Results EVT vs MG",
+                           "/path/to/ EVT vs MG/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+
+***********************************
+#Harmony on all 3 TO combined files
+***********************************
+```{r}
+MG.alra$stim <- "MG"
+Flipped.alra$stim <- "Flipped"
+EVT.alra$stim <- "EVT"
+```
+
+```{r}
+VariableFeatures(FlippedvsEVTvsMG.harm[["SCT"]]) <- rownames(FlippedvsEVTvsMG.harm[["SCT"]]@scale.data)
+
+FlippedvsEVTvsMG.harm <- RunPCA(FlippedvsEVTvsMG.harm, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(FlippedvsEVTvsMG.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+```
+
+```{r}
+FlippedvsEVTvsMG.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+FlippedvsEVTvsMG.harm  <- FindNeighbors(FlippedvsEVTvsMG.harm, reduction = "harmony")
+DefaultAssay(FlippedvsEVTvsMG.harm)  <- "SCT"
+FlippedvsEVTvsMG.harm <- FindClusters(FlippedvsEVTvsMG.harm, reduction = "harmony", resolution = 0.8)
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = FlippedvsEVTvsMG.harm,
+    reduction = "harmony",
+    resolution = c(0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+#res 0.8
+```{r}
+DimPlot(FlippedvsEVTvsMG.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(FlippedvsEVTvsMG.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+saveRDS(FlippedvsEVTvsMG.harm, file = "FlippedvsEVTvsMG.newQC.harm.11.7.23.rds")
+```
+
+```{r}
+DefaultAssay(FlippedvsEVTvsMG.harm)  <- "RNA"
+FlippedvsEVTvsMG.harm.newQC.markers <- FindAllMarkers(object = FlippedvsEVTvsMG.harm, thresh.use = 0.25, min.pct = 0.25, only.pos = TRUE)
+```
+
+```{r}
+setwd("/path/to/ analysis_final")
+write.csv(FlippedvsEVTvsMG.harm.newQC.markers, file="MGvsFlippedvsEVT_harmony_strictQC.0.8res.csv")
+```
+
+#Tissue snRNASeq vs TOs
+
+***********************************
+*****Tissue (term) vs. Flipped*****
+***********************************
+
+```{r}
+TissueSN.alra <- readRDS("<replace_with_public_path>")
+TissueSN.alra$stim <- "Tissue"
+TissuevsFlipped <- merge(Flipped.alra, y = c(TissueSN.alra), project = "Tissue vs Flipped")
+```
+`
+
+```{r}
+VariableFeatures(TissuevsFlipped[["SCT"]]) <- rownames(TissuevsFlipped[["SCT"]]@scale.data)
+
+TissuevsFlipped.harm <- RunPCA(TissuevsFlipped, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(TissuevsFlipped.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+```
+
+```{r}
+TissuevsFlipped.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+TissuevsFlipped.harm  <- FindNeighbors(TissuevsFlipped.harm, reduction = "harmony")
+DefaultAssay(TissuevsFlipped.harm)  <- "SCT"
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = TissuevsFlipped.harm,
+    reduction = "harmony",
+    resolution = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+library(clustree)
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+```{r}
+TissuevsFlipped.harm <- FindClusters(TissuevsFlipped.harm, reduction = "harmony", resolution = 0.3)
+```
+
+#res 0.3
+```{r}
+DimPlot(TissuevsFlipped.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(TissuevsFlipped.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+DefaultAssay(TissuevsFlipped.harm)  <- "alra"
+DotPlot(TissuevsFlipped.harm, features = all6, dot.scale = 7, scale = T, col.min = 0, col.max = 1) + theme(legend.direction = "vertical")+   theme(legend.position="bottom")+ theme(legend.title = element_text(color = "black", size = 10), legend.text = element_text(color = "black", size = 10))+ theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + theme(legend.key.height= unit(0.45, 'cm'), legend.key.width= unit(0.5, 'cm')) + scale_color_gradientn(colors = (brewer.pal(n = 11, name = "OrRd"))) +guides(col = guide_colourbar(title = "Mean expression")) + labs(size="% cells") + RotatedAxis() +     geom_point(aes(size=pct.exp), shape = 21, colour="black", stroke=0.5)  +guides(size=guide_legend(override.aes=list(shape=21, colour="black", fill="white")))
+```
+
+```{r}
+ saveRDS(TissuevsFlipped.harm, file = "TissueSNvsFlipped.harm.rds")
+```
+
+```{r}
+DimPlot(TissuevsFlipped.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(TissuevsFlipped.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+ saveRDS(TissuevsFlipped.harm, file = "TissueSNvsFlipped.harm.named cluster.11.21.23.rds")
+```
+
+```{r}
+pt <- table(Idents(TissuevsFlipped.harm), (TissuevsFlipped.harm$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = brewer.pal(12, "Paired")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+cluster.averages <- AverageExpression(TissuevsFlipped.harm, return.seurat = TRUE)
+```
+
+```{r}
+DoHeatmap(cluster.averages, features = unlist(TopFeatures(TissuevsFlipped.harm[["pca"]], balanced = TRUE)), size = 3, draw.lines = FALSE)
+```
+
+```{r}
+STB.tissue <- subset(TissuevsFlipped.harm, idents = c("pre-STB", "STB-1", "STB-2", "STB-3", "STB-4"))
+DimPlot(STB.tissue, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+```
+
+```{r}
+cluster.averages <- AverageExpression(STB.tissue, return.seurat = TRUE)
+```
+
+```{r}
+DoHeatmap(cluster.averages, features = unlist(TopFeatures(STB.tissue[["pca"]], balanced = TRUE)), size = 3, draw.lines = FALSE)
+```
+
+```{r}
+pt <- table(Idents(STB.tissue), (STB.tissue$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = brewer.pal(12, "Paired")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+ saveRDS(STB.tissue, file = "TissueSNvsFlipped.STB subset.11.21.23.rds")
+```
+
+**********************
+#STB derived from TSCs
+**********************
+
+```{r}
+CTBTSC.data <- Read10X(data.dir ="/path/to/ derived STB/GSM7882506_STB-CT30.filtered_feature_bc_matrix/filtered_feature_bc_matrix")
+CTBTSC <- CreateSeuratObject(counts = CTBTSC.data, project = "CTBTSC", min.cells = 3, min.features = 200)
+BLTSC.data <- Read10X(data.dir ="/path/to/ derived STB/GSM7882505_STB-BL.filtered_feature_bc_matrix/filtered_feature_bc_matrix")
+BLTSC <- CreateSeuratObject(counts = BLTSC.data, project = "BLTSC", min.cells = 3, min.features = 200)
+```
+
+```{r}
+apply(
+     CTBTSC@assays$RNA@counts,
+     2,
+     function(x)(100*max(x))/sum(x)
+ ) -> CTBTSC$Percent.Largest.Gene
+CTBTSC[["percent.mt"]] <- PercentageFeatureSet(CTBTSC, pattern = "^MT-")
+CTBTSC[["percent.rb"]] <- PercentageFeatureSet(CTBTSC, pattern = "^RP[SL]")
+apply(
+     BLTSC@assays$RNA@counts,
+     2,
+     function(x)(100*max(x))/sum(x)
+ ) -> BLTSC$Percent.Largest.Gene
+BLTSC[["percent.mt"]] <- PercentageFeatureSet(BLTSC, pattern = "^MT-")
+BLTSC[["percent.rb"]] <- PercentageFeatureSet(BLTSC, pattern = "^RP[SL]")
+```
+
+```{r}
+VlnPlot(
+  object = CTBTSC,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+VlnPlot(
+  object = BLTSC,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+```
+
+```{r}
+subset(
+     CTBTSC,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 10000 & nCount_RNA<50000 & percent.rb<3 &
+         percent.mt<1)-> CTBTSC
+subset(
+     BLTSC,
+     nFeature_RNA>800 & 
+         nFeature_RNA < 10000 & nCount_RNA<20000 & percent.rb<3 &
+         percent.mt<2)-> BLTSC
+
+```
+
+```{r}
+VlnPlot(
+  object = CTBTSC,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+VlnPlot(
+  object = BLTSC,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+```
+
+```{r}
+CTBTSC <- CTBTSC[!grepl("MALAT1", rownames (CTBTSC)),]
+BLTSC <- BLTSC[!grepl("MALAT1", rownames (BLTSC)),]
+```
+
+```{r}
+dim(CTBTSC)
+```
+
+```{r}
+dim(BLTSC)
+```
+```{r}
+TSC <- merge(CTBTSC, y = c(BLTSC), add.cell.ids = c("TSC.1", "TSC.2"), project = "TSCs")
+```
+
+```{r}
+library(biomaRt)
+mart <- useMart("ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl")
+genes.table <- try(biomaRt::getBM(attributes = c("ensembl_gene_id", "external_gene_name",
+        "description", "gene_biotype", "chromosome_name", "start_position"), mart = mart,
+        useCache = F))
+genes.table <- genes.table[genes.table$external_gene_name %in% rownames(TSC),
+]
+chrY.gene = genes.table$external_gene_name[genes.table$chromosome_name == "Y"]
+TSC$pct_chrY = colSums(TSC@assays$RNA@counts[chrY.gene, ])/colSums(TSC@assays$RNA@counts)
+chrX.gene = genes.table$external_gene_name[genes.table$chromosome_name == "X"]
+TSC$pct_chrX = colSums(TSC@assays$RNA@counts[chrX.gene, ])/colSums(TSC@assays$RNA@counts)
+```
+
+```{r}
+VlnPlot(TSC, features = c("pct_chrX", "pct_chrY"))
+```
+
+```{r}
+TSC.list <- SplitObject(TSC, split.by = "orig.ident")
+TSC.list <- lapply(TSC.list, FUN = SCTransform, assay = 'RNA', new.assay.name = 'SCT',  vars.to.regress = c('nFeature_RNA', 'nCount_RNA', 'percent.mt', 'percent.rb', 'pct_chrX', 'pct_chrY'), vst.flavor = "v2")
+```
+
+```{r}
+TSCfeatures <- SelectIntegrationFeatures(object.list = TSC.list, nfeatures = 3000)
+TSC.list <- PrepSCTIntegration(object.list = TSC.list, anchor.features = TSCfeatures)
+TSC.anchors <- FindIntegrationAnchors(object.list = TSC.list, normalization.method = "SCT", anchor.features = TSCfeatures)
+TSC.int <- IntegrateData(anchorset = TSC.anchors, normalization.method = "SCT")
+```
+
+```{r}
+TSC.int <- RunPCA(TSC.int, verbose = TRUE)
+ElbowPlot(TSC.int, reduction = "pca", ndims = 50)
+Seurat::DimHeatmap(TSC.int, dims = 1:10, cells = 100, balanced = TRUE)
+```
+
+```{r}
+TSC.int <- RunUMAP(TSC.int, reduction = "pca", dims = 1:30)
+```
+
+```{r}
+TSC.int <- FindNeighbors(TSC.int, reduction = "pca", dims = 1:30)
+TSC.int <- FindClusters(TSC.int, resolution = 0.3)
+```
+
+```{r}
+DimPlot(TSC.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T)
+DimPlot(TSC.int, reduction = "umap", label.size = 7,pt.size = 0.75, label=T, split.by="orig.ident")
+```
+
+```{r}
+DefaultAssay(TSC.int) <- "RNA"
+TSC.int<-NormalizeData(TSC.int)
+TSC.int<-ScaleData(TSC.int)
+
+DefaultAssay(TSC.int) <- "SCT"
+TSC.alra<-RunALRA(TSC.int)
+```
+
+```{r}
+saveRDS(TSC.alra, file = "TSCs_CTB and BL_from GEO.ALRA.rds")
+```
+
+*******************************
+#8w snRNAseq dataset from villi
+*******************************
+
+```{r}
+First.1.data <- Read10X(data.dir ="/path/to/ analysis/First trimester snRNASeq GEO datasets/GSM7882479_placenta_10X_early1.filtered_feature_bc_matrix")
+First.1 <- CreateSeuratObject(counts = First.1.data, project = "First.1", min.cells = 3, min.features = 200)
+
+First.2.data <- Read10X(data.dir ="/path/to/ analysis/First trimester snRNASeq GEO datasets/GSM7882480_placenta_10X_early2.filtered_feature_bc_matrix")
+First.2 <- CreateSeuratObject(counts = First.2.data, project = "First.2", min.cells = 3, min.features = 200)
+
+First.3.data <- Read10X(data.dir ="/path/to/ analysis/First trimester snRNASeq GEO datasets/GSM7882481_placenta_10X_early3.filtered_feature_bc_matrix")
+First.3 <- CreateSeuratObject(counts = First.3.data, project = "First.3", min.cells = 3, min.features = 200)
+
+First.4.data <- Read10X(data.dir ="/path/to/ analysis/First trimester snRNASeq GEO datasets/GSM7882482_placenta_10X_early4.filtered_feature_bc_matrix")
+First.4 <- CreateSeuratObject(counts = First.4.data, project = "First.4", min.cells = 3, min.features = 200)
+```
+
+```{r}
+apply(
+     First.1@assays$RNA@counts,
+     2,
+     function(x)(100*max(x))/sum(x)
+ ) -> First.1$Percent.Largest.Gene
+First.1[["percent.mt"]] <- PercentageFeatureSet(First.1, pattern = "^MT-")
+First.1[["percent.rb"]] <- PercentageFeatureSet(First.1, pattern = "^RP[SL]")
+
+apply(
+     First.2@assays$RNA@counts,
+     2,
+     function(x)(100*max(x))/sum(x)
+ ) -> First.2$Percent.Largest.Gene
+First.2[["percent.mt"]] <- PercentageFeatureSet(First.2, pattern = "^MT-")
+First.2[["percent.rb"]] <- PercentageFeatureSet(First.2, pattern = "^RP[SL]")
+
+apply(
+     First.3@assays$RNA@counts,
+     2,
+     function(x)(100*max(x))/sum(x)
+ ) -> First.3$Percent.Largest.Gene
+First.3[["percent.mt"]] <- PercentageFeatureSet(First.3, pattern = "^MT-")
+First.3[["percent.rb"]] <- PercentageFeatureSet(First.3, pattern = "^RP[SL]")
+
+apply(
+     First.4@assays$RNA@counts,
+     2,
+     function(x)(100*max(x))/sum(x)
+ ) -> First.4$Percent.Largest.Gene
+First.4[["percent.mt"]] <- PercentageFeatureSet(First.4, pattern = "^MT-")
+First.4[["percent.rb"]] <- PercentageFeatureSet(First.4, pattern = "^RP[SL]")
+```
+
+```{r}
+VlnPlot(
+  object = First.1,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = First.2,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = First.3,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+
+VlnPlot(
+  object = First.4,
+  features = c("nCount_RNA", "nFeature_RNA", "percent.mt", "percent.rb"),
+  ncol = 4,
+  pt.size = 0.5)
+```
+
+```{r}
+subset(
+     First.1,
+     nFeature_RNA>500 & 
+         nFeature_RNA < 6000 & nCount_RNA<40000 & percent.rb<1 &
+         percent.mt<0.5)-> First.1
+
+subset(
+     First.2,
+     nFeature_RNA>500 & 
+         nFeature_RNA < 6000 & nCount_RNA<60000 & percent.rb<1 &
+         percent.mt<1)-> First.2
+
+subset(
+     First.3,
+     nFeature_RNA>500 & 
+         nFeature_RNA < 8000 & nCount_RNA<60000 & percent.rb<2 &
+         percent.mt<1)-> First.3
+
+subset(
+     First.4,
+     nFeature_RNA>500 & 
+         nFeature_RNA < 7500 & nCount_RNA<60000 & percent.rb<2 &
+         percent.mt<1)-> First.4
+
+```
+
+```{r}
+First <- merge(First.1, y = c(First.2, First.4), add.cell.ids = c("1", "2", "3"), project = "First")
+```
+
+```{r}
+First <- First[!grepl("MALAT1", rownames (First)),]
+```
+
+```{r}
+library(biomaRt)
+mart <- useMart("ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl")
+genes.table <- try(biomaRt::getBM(attributes = c("ensembl_gene_id", "external_gene_name",
+        "description", "gene_biotype", "chromosome_name", "start_position"), mart = mart,
+        useCache = F))
+genes.table <- genes.table[genes.table$external_gene_name %in% rownames(First),
+]
+chrY.gene = genes.table$external_gene_name[genes.table$chromosome_name == "Y"]
+First$pct_chrY = colSums(First@assays$RNA@counts[chrY.gene, ])/colSums(First@assays$RNA@counts)
+chrX.gene = genes.table$external_gene_name[genes.table$chromosome_name == "X"]
+First$pct_chrX = colSums(First@assays$RNA@counts[chrX.gene, ])/colSums(First@assays$RNA@counts)
+```
+
+```{r}
+VlnPlot(First, features = c("pct_chrX", "pct_chrY"))
+```
+
+```{r}
+dim(First)
+```
+
+```{r}
+First.list <- SplitObject(First, split.by = "orig.ident")
+First.list <- lapply(First.list, FUN = SCTransform, assay = 'RNA', new.assay.name = 'SCT',  vars.to.regress = c('nFeature_RNA', 'nCount_RNA', 'percent.mt', 'percent.rb', 'pct_chrX', 'pct_chrY'), vst.flavor = "v2")
+```
+
+```{r}
+Firstfeatures <- SelectIntegrationFeatures(object.list = First.list, nfeatures = 3000)
+First.list <- PrepSCTIntegration(object.list = First.list, anchor.features = Firstfeatures)
+First.anchors <- FindIntegrationAnchors(object.list = First.list, normalization.method = "SCT", anchor.features = Firstfeatures)
+First.int <- IntegrateData(anchorset = First.anchors, normalization.method = "SCT")
+```
+
+```{r}
+First.int <- RunPCA(First.int, verbose = TRUE)
+ElbowPlot(First.int, reduction = "pca", ndims = 50)
+Seurat::DimHeatmap(First.int, dims = 1:10, cells = 100, balanced = TRUE)
+```
+
+```{r}
+First.int <- RunUMAP(First.int, reduction = "pca", dims = 1:30)
+```
+
+```{r}
+First.int <- FindNeighbors(First.int, reduction = "pca", dims = 1:30)
+First.int <- FindClusters(First.int, resolution = 0.4)
+```
+
+```{r}
+DimPlot(First.int, reduction = "umap", label.size = 5,pt.size = 0.75, label=T)
+```
+
+```{r}
+DefaultAssay(First.int) <- "RNA"
+First.int<-NormalizeData(First.int)
+First.int<-ScaleData(First.int)
+
+DefaultAssay(First.int) <- "SCT"
+First.alra<-RunALRA(First.int)
+
+saveRDS(First.alra, file = "First trimester snRNASeq.ALRA.2.5.24.rds")
+```
+
+***************************
+*******Flipped vs TSC******
+***************************
+
+```{r}
+Flipped.alra$stim <- "STBout"
+TSC.alra$stim <- "TSC"
+FlippedvsTSC <- merge(Flipped.alra, y = c(TSC.alra), project = "Flipped vs TSC")
+```
+
+```{r}
+VariableFeatures(FlippedvsTSC[["SCT"]]) <- rownames(FlippedvsTSC[["SCT"]]@scale.data)
+
+FlippedvsTSC.harm <- RunPCA(FlippedvsTSC, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(FlippedvsTSC.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+
+FlippedvsTSC.harm2 <- RunPCA(FlippedvsTSC, assay = "SCT", npcs = 50, group.by.vars="orig.ident")
+library(harmony)
+test3 <- RunHarmony(FlippedvsTSC.harm2, 
+                        group.by.vars = "orig.ident", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+ElbowPlot(test3, reduction = "pca", ndims = 50)
+```
+
+```{r}
+FlippedvsTSC.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+FlippedvsTSC.harm  <- FindNeighbors(FlippedvsTSC.harm, reduction = "harmony")
+DefaultAssay(FlippedvsTSC.harm)  <- "SCT"
+```
+
+```{r}
+FlippedvsTSC.harm2  <- RunUMAP(test3 , reduction = "harmony", assay = "SCT", dims = 1:40)
+FlippedvsTSC.harm2  <- FindNeighbors(FlippedvsTSC.harm2, reduction = "harmony")
+DefaultAssay(FlippedvsTSC.harm2)  <- "SCT"
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = FlippedvsTSC.harm,
+    reduction = "harmony",
+    resolution = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+library(clustree)
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+```{r}
+FlippedvsTSC.harm <- FindClusters(FlippedvsTSC.harm, reduction = "harmony", resolution = 0.3)
+```
+
+```{r}
+FlippedvsTSC.harm2 <- FindClusters(FlippedvsTSC.harm2, reduction = "harmony", resolution = 0.3)
+```
+
+#res 0.3
+```{r}
+DimPlot(FlippedvsTSC.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(FlippedvsTSC.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+***DeSeq2***
+```{r}
+
+avg.TSC.All <- as.data.frame(AggregateExpression(TSC, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+colnames(avg.TSC.All) <- gsub("RNA.","",colnames(avg.TSC.All))
+avg.TSC.All$gene <- rownames(avg.TSC.All)
+
+cts <- avg.TSC.All[,1:(ncol(avg.TSC.All)-1)]
+coldata <- data.frame(Sample = colnames(avg.TSC.All[,1:(ncol(avg.TSC.All)-1)]),
+                      Condition = c("TSC",
+                                    "TSC",
+                                    "TO",
+                                    "TO", "TO"
+                                  ))
+
+avg.TSC.All.dds <- DESeqDataSetFromMatrix(countData=cts,
+                                  colData=coldata,
+                                  design=~Condition)
+
+avg.TSC.All.dds <- DESeq(avg.TSC.All.dds)
+
+avg.TSC.All.dds.Res <- results(avg.TSC.All.dds,contrast = c("Condition","TO","TSC"))
+
+write.csv(avg.TSC.All.dds.Res, file="avg.TO vs TSC.dds.Res.3.27.24.csv")
+```
+
+```{r}
+
+Perform.Pseudobulk <- function(TSC, CountsDir, ResultsDir, Conditions, Contrast, SubsetName) {
+  dir.create(CountsDir, showWarnings = FALSE)
+  dir.create(ResultsDir, showWarnings = FALSE)
+  
+  AggCounts <- as.data.frame(AggregateExpression(TSC, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+  colnames(AggCounts) <- gsub("RNA.","",colnames(AggCounts))
+  AggCounts$gene <- rownames(AggCounts)
+  setwd(CountsDir)
+  write.table(as.data.frame(AggCounts), file = "FlippedvsTSC_Aggregated_Counts.txt", sep="\t")
+  
+  cts <- AggCounts[,1:(ncol(AggCounts)-1)]
+  coldata <- data.frame(Sample = colnames(AggCounts[,1:(ncol(AggCounts)-1)]),
+                        Condition = Conditions
+  )
+  
+  dds <- DESeqDataSetFromMatrix(countData=cts,
+                                    colData=coldata,
+                                    design=~Condition)
+  
+  dds <- DESeq(dds)
+  
+  dds.Res <- results(dds,contrast = c("Condition",Contrast[1],Contrast[2]))
+  
+  setwd(ResultsDir)
+  write.table(as.data.frame(dds.Res), file = paste(sub("/","-",SubsetName),"_DESeq2_Res.txt", sep = ""), sep="\t")
+}
+
+Perform.Pseudobulk.On.All.Clusters <- function(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast){
+    #Get Cluster Names
+    clusters <- sort(as.character(unique(SeuratObj@active.ident)))
+
+    #Perform Pseudobulk
+    Perform.Pseudobulk(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast, "All_Clusters")
+    for (i in 1:length(clusters)){
+      Perform.Pseudobulk(subset(SeuratObj, idents = clusters[i]), CountsDir, ResultsDir, Conditions, Contrast, clusters[i])
+    }
+}
+```
+
+# Perform pseudobulk on all clusters
+```{r}
+Perform.Pseudobulk.On.All.Clusters(TSC,
+                                   "/path/to/Desktop/Pseudobulk TO vs TSC/Counts",
+                                   "/path/to/Desktop/Pseudobulk TO vs TSC/Results",
+                                    Conditions= c( "TSC",
+                                    "TSC",
+                                    "TO",
+                                    "TO", "TO"
+                                    ),
+                                   Contrast = c("TO","TSC")
+                                   )
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2 <- function(InputDir, ResultsDir, log2.fc, padj) {
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    DESeqData <- DESeqData[abs(DESeqData$log2FoldChange) > log2.fc,]
+    DESeqData <- DESeqData[DESeqData$padj < padj,]
+    DESeqData <- DESeqData[complete.cases(DESeqData),]
+    DESeqData <- DESeqData[order(DESeqData$log2FoldChange),]
+    na.omit(DESeqData)
+    setwd(ResultsDir)
+    write.table(as.data.frame(DESeqData), file = paste(sub(".txt","",FilesNames[i]),"_Sig.txt", sep = ""), sep="\t")
+  }
+}
+
+Make.Nice.Volcano.Plot.PDF <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    pdf(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.pdf", sep = ""),
+        width = 8.5,
+        height = 11)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+
+Make.Nice.Volcano.Plot.PNG <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    png(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.png", sep = ""),
+        width = 850,
+        height = 1100)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2("/path/to/Desktop/Pseudobulk TO vs TSC/Results",
+                           "/path/to/Desktop/Pseudobulk TO vs TSC/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/Desktop/Pseudobulk TO vs TSC/Results",
+                           "/path/to/Desktop/Pseudobulk TO vs TSC/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/Desktop/Pseudobulk TO vs TSC/Results",
+                           "/path/to/Desktop/Pseudobulk TO vs TSC/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+```{r}
+GO.Enrichment.of.DEGs <- function(SigDEG.Dir,ResultsDir,Up.Down.Both) {
+  dir.create(ResultsDir, showWarnings = FALSE)
+  setwd(SigDEG.Dir)
+  files<-list.files(path = SigDEG.Dir)
+  for(i in 1:length(files)) {
+    setwd(SigDEG.Dir)
+    if (is.data.frame(try(read.table(files[i]),silent = T))) {
+      selgenes<-read.table(files[i])
+      if(Up.Down.Both == "Up") {
+        selgenes <- selgenes[selgenes$log2FoldChange > 0,]
+      }
+      if(Up.Down.Both == "Down") {
+        selgenes <- selgenes[selgenes$log2FoldChange < 0,]
+      }
+      if(Up.Down.Both == "Both") {
+        selgenes <- selgenes
+      }
+      selgenes<-as.character(rownames(selgenes))
+      if(length(selgenes)>=25){
+        GO <- enrichGO(selgenes, org.Hs.eg.db, keyType = "SYMBOL", ont = "BP", pAdjustMethod = "fdr", readable = F)
+        p1 <- dotplot(GO, showCategory=30)
+        setwd(ResultsDir)
+        write.table(as.data.frame(GO), file = paste(gsub(".txt","",files[i]), Up.Down.Both, "enrichGO.txt", sep="_"), sep="\t")
+        if(length(rownames(as.data.frame(GO)))>=1){
+          ggsave(
+            paste(gsub(".txt","",files[i]), Up.Down.Both, "enrichGO.png", sep="_"),
+            plot = p1,
+            device = NULL,
+            path = NULL,
+            scale = 1,
+            width = 10,
+            height = 10,
+            units = c("in"),
+            dpi = 300,
+            limitsize = F,
+            bg = NULL
+          )
+        }
+      }
+    }
+  }
+  }
+```
+
+```{r}
+GO.Enrichment.of.DEGs("/path/to/Desktop/Pseudobulk TO vs TSC/Significant DEGs",
+                       "/path/to/Desktop/Pseudobulk TO vs TSC/Significant DEGs/GO Enrichment", "Down")
+```
+
+**********************************
+*******Flipped vs EVT vs TSC******
+**********************************
+
+```{r}
+EVT.alra <- readRDS("<replace_with_public_path>")
+Flipped.alra <- readRDS("<replace_with_public_path>")
+TSC.alra
+TSC.alra <- readRDS("<replace_with_public_path>")
+
+Flipped.alra$stim <- "STBout"
+TSC.alra$stim <- "TSC"
+EVT.alra$stim <- "EVT"
+FlippedvsEVTvsTSC <- merge(Flipped.alra, y = c(TSC.alra, EVT.alra), project = "Flipped vs EVT vs TSC")
+```
+
+```{r}
+VariableFeatures(FlippedvsEVTvsTSC[["SCT"]]) <- rownames(FlippedvsEVTvsTSC[["SCT"]]@scale.data)
+
+FlippedvsEVTvsTSC.harm <- RunPCA(FlippedvsEVTvsTSC, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(FlippedvsEVTvsTSC.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+```
+
+```{r}
+FlippedvsEVTvsTSC.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+FlippedvsEVTvsTSC.harm  <- FindNeighbors(FlippedvsEVTvsTSC.harm, reduction = "harmony")
+DefaultAssay(FlippedvsEVTvsTSC.harm)  <- "SCT"
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = FlippedvsEVTvsTSC.harm,
+    reduction = "harmony",
+    resolution = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+library(clustree)
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+```{r}
+FlippedvsEVTvsTSC.harm <- FindClusters(FlippedvsEVTvsTSC.harm, reduction = "harmony", resolution = 0.3)
+```
+
+#res 0.3
+```{r}
+DimPlot(FlippedvsEVTvsTSC.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(FlippedvsEVTvsTSC.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+setwd("/path/to/")
+```
+
+```{r}
+saveRDS(FlippedvsEVTvsTSC.harm, file = "FlippedvsEVTvsTSC.harm.ALRA.12.17.23.rds")
+```
+
+```{r}
+DefaultAssay(FlippedvsEVTvsTSC.harm)  <- "RNA"
+FlippedvsEVTvsTSC.harm.harm.markers <- FindAllMarkers(object = FlippedvsEVTvsTSC.harm, thresh.use = 0.25, min.pct = 0.25, only.pos = TRUE)
+```
+
+```{r}
+write.csv(FlippedvsEVTvsTSC.harm.harm.markers, file="FlippedvsEVTvsTSC.harm.0.3res.markers.csv")
+```
+
+***DeSeq2***
+```{r}
+
+avg.FlippedvsEVTvsTSC.harm.All <- as.data.frame(AggregateExpression(FlippedvsEVTvsTSC.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+colnames(avg.FlippedvsEVTvsTSC.harm.All) <- gsub("RNA.","",colnames(avg.FlippedvsEVTvsTSC.harm.All))
+avg.FlippedvsEVTvsTSC.harm.All$gene <- rownames(avg.FlippedvsEVTvsTSC.harm.All)
+
+cts <- avg.FlippedvsEVTvsTSC.harm.All[,1:(ncol(avg.FlippedvsEVTvsTSC.harm.All)-1)]
+coldata <- data.frame(Sample = colnames(avg.FlippedvsEVTvsTSC.harm.All[,1:(ncol(avg.FlippedvsEVTvsTSC.harm.All)-1)]),
+                      Condition = c("EVT",
+                                    "EVT",
+                                    "EVT",
+                                    "Flipped",
+                                    "Flipped",
+                                    "Flipped",
+                                    "TSC"
+                                  ))
+
+avg.FlippedvsEVTvsTSC.harm.All.dds <- DESeqDataSetFromMatrix(countData=cts,
+                                  colData=coldata,
+                                  design=~Condition)
+
+avg.FlippedvsEVTvsTSC.harm.All.dds <- DESeq(avg.FlippedvsEVTvsTSC.harm.All.dds)
+
+avg.FlippedvsEVTvsTSC.harm.FlippedvsTSC.dds.Res <- results(avg.FlippedvsEVTvsTSC.harm.All.dds,contrast = c("Condition","Flipped","TSC"))
+
+avg.FlippedvsEVTvsTSC.harm.EVTvsTSC.dds.Res <- results(avg.FlippedvsEVTvsTSC.harm.All.dds,contrast = c("Condition","EVT","TSC"))
+
+write.csv(avg.FlippedvsEVTvsTSC.harm.FlippedvsTSC.dds.Res, file="Flipped TO vs TSC.dds.Res.12.17.23.csv")
+
+write.csv(avg.FlippedvsEVTvsTSC.harm.EVTvsTSC.dds.Res, file="EVT TO vs TSC.dds.Res.12.17.23.csv")
+```
+
+```{r}
+
+Perform.Pseudobulk <- function(FlippedvsEVTvsTSC.harm, CountsDir, ResultsDir, Conditions, Contrast, SubsetName) {
+  dir.create(CountsDir, showWarnings = FALSE)
+  dir.create(ResultsDir, showWarnings = FALSE)
+  
+  AggCounts <- as.data.frame(AggregateExpression(FlippedvsEVTvsTSC.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+  colnames(AggCounts) <- gsub("RNA.","",colnames(AggCounts))
+  AggCounts$gene <- rownames(AggCounts)
+  setwd(CountsDir)
+  write.table(as.data.frame(AggCounts), file = "FlippedvsEVTvsTSC.harm_Aggregated_Counts.txt", sep="\t")
+  
+  cts <- AggCounts[,1:(ncol(AggCounts)-1)]
+  coldata <- data.frame(Sample = colnames(AggCounts[,1:(ncol(AggCounts)-1)]),
+                        Condition = Conditions
+  )
+  
+  dds <- DESeqDataSetFromMatrix(countData=cts,
+                                    colData=coldata,
+                                    design=~Condition)
+  
+  dds <- DESeq(dds)
+  
+  dds.Res <- results(dds,contrast = c("Condition",Contrast[1],Contrast[2]))
+  
+  setwd(ResultsDir)
+  write.table(as.data.frame(dds.Res), file = paste(sub("/","-",SubsetName),"_DESeq2_Res.txt", sep = ""), sep="\t")
+}
+
+Perform.Pseudobulk.On.All.Clusters <- function(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast){
+    #Get Cluster Names
+    clusters <- sort(as.character(unique(SeuratObj@active.ident)))
+
+    #Perform Pseudobulk
+    Perform.Pseudobulk(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast, "All_Clusters")
+    for (i in 1:length(clusters)){
+      Perform.Pseudobulk(subset(SeuratObj, idents = clusters[i]), CountsDir, ResultsDir, Conditions, Contrast, clusters[i])
+    }
+}
+```
+
+# Perform pseudobulk on all clusters
+```{r}
+Perform.Pseudobulk.On.All.Clusters(FlippedvsTSC.harm,
+                                   "/path/to/ TOs all vs TSC/Counts",
+                                   "/path/to/ TOs all vs TSC/Results",
+                                   Condition = c("EVT",
+                                    "EVT",
+                                    "EVT",
+                                    "Flipped",
+                                    "Flipped",
+                                    "Flipped",
+                                    "TSC"
+                                  ),
+                                   Contrast = c("Flipped","TSC")
+                                   )
+```
+
+```{r}
+Perform.Pseudobulk.On.All.Clusters(FlippedvsTSC.harm,
+                                   "/path/to/ TOs all vs TSC/Counts",
+                                   "/path/to/ TOs all vs TSC/Results",
+                                    Condition = c("EVT",
+                                    "EVT",
+                                    "EVT",
+                                    "Flipped",
+                                    "Flipped",
+                                    "Flipped",
+                                    "TSC"
+                                  ),
+                                   Contrast = c("EVT","TSC")
+                                   )
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2 <- function(InputDir, ResultsDir, log2.fc, padj) {
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    DESeqData <- DESeqData[abs(DESeqData$log2FoldChange) > log2.fc,]
+    DESeqData <- DESeqData[DESeqData$padj < padj,]
+    DESeqData <- DESeqData[complete.cases(DESeqData),]
+    DESeqData <- DESeqData[order(DESeqData$log2FoldChange),]
+    na.omit(DESeqData)
+    setwd(ResultsDir)
+    write.table(as.data.frame(DESeqData), file = paste(sub(".txt","",FilesNames[i]),"_Sig.txt", sep = ""), sep="\t")
+  }
+}
+
+Make.Nice.Volcano.Plot.PDF <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    pdf(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.pdf", sep = ""),
+        width = 8.5,
+        height = 11)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+
+Make.Nice.Volcano.Plot.PNG <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    png(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.png", sep = ""),
+        width = 850,
+        height = 1100)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2("/path/to/ TOs all vs TSC/Results",
+                           "/path/to/ TOs all vs TSC/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/ TOs all vs TSC/Results",
+                           "/path/to/ TOs all vs TSC/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/ TOs all vs TSC/Results",
+                           "/path/to/ TOs all vs TSC/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+
+**********************************************
+*****First tri (GEO dataset) vs Term vs TO****
+**********************************************
+```{r}
+First <- readRDS("<replace_with_public_path>")
+Flipped <- readRDS("<replace_with_public_path>")
+Term <- readRDS("<replace_with_public_path>")
+Flipped$stim <- "TO"
+First$stim <- "First"
+Term$stim <- "Term"
+FlippedvsTissue <- merge(Flipped, y = c(First, Term), project = "Flipped vs Tissue")
+```
+
+```{r}
+VariableFeatures(FlippedvsTissue[["SCT"]]) <- rownames(FlippedvsTissue[["SCT"]]@scale.data)
+
+FlippedvsTissue.harm <- RunPCA(FlippedvsTissue, assay = "SCT", npcs = 50, group.by.vars="stim")
+library(harmony)
+test2 <- RunHarmony(FlippedvsTissue.harm, 
+                        group.by.vars = "stim", 
+                        reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+```
+
+```{r}
+ElbowPlot(test2, reduction = "pca", ndims = 50)
+```
+
+```{r}
+FlippedvsTissue.harm  <- RunUMAP(test2 , reduction = "harmony", assay = "SCT", dims = 1:40)
+FlippedvsTissue.harm  <- FindNeighbors(FlippedvsTissue.harm, reduction = "harmony")
+DefaultAssay(FlippedvsTissue.harm)  <- "SCT"
+```
+
+#Check resolution
+```{r}
+res_test <- FindClusters(
+    object = FlippedvsTissue.harm,
+    reduction = "harmony",
+    resolution = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.9, 1.0),
+    dims.use = 1:40,
+    save.SNN = TRUE
+)
+```
+
+```{r}
+library(clustree)
+clustree(res_test)
+clustree_overlay(res_test, red_dim = "umap", x_value = "umap1", y_value = "umap2")
+```
+
+```{r}
+FlippedvsTissue.harm <- FindClusters(FlippedvsTissue.harm, reduction = "harmony", resolution = 0.3)
+```
+
+#res 0.3
+```{r}
+DimPlot(FlippedvsTissue.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(FlippedvsTissue.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+        label.size = 5)
+```
+
+```{r}
+saveRDS(FlippedvsTissue.harm, file = "FlippedvsTissue.First and term.harm.ALRA.2.5.23.rds")
+```
+
+```{r}
+DimPlot(FlippedvsTissue.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols=c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTBp"="#990073", "CTB-pf"="#8500CC", "Immune"="#FF7300", "Fibro"="#FFE926", "EVT"="#0D00FF", "VEC"="#993E17"))
+DimPlot(FlippedvsTissue.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,label.size = 5, cols=c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTBp"="#990073", "CTB-pf"="#8500CC", "Immune"="#FF7300", "Fibro"="#FFE926", "EVT"="#0D00FF", "VEC"="#993E17"))
+```
+
+```{r}
+levels(FlippedvsTissue.harm) <- c("CTBp",
+                  "CTB",
+                 "CTB-pf",
+                  "STB-1",
+"STB-2",
+"STB-3",
+"EVT",
+"Fibro",
+"VEC",
+"Immune")
+
+print(levels(FlippedvsTissue.harm))
+
+```
+
+```{r}
+pt <- table(Idents(FlippedvsTissue.harm), (FlippedvsTissue.harm$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+  scale_fill_manual(values = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTBp"="#990073", "CTB-pf"="#8500CC", "Immune"="#FF7300", "Fibro"="#FFE926", "EVT"="#0D00FF", "VEC"="#993E17")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+cluster.averages <- AverageExpression(FlippedvsTissue.harm, return.seurat = TRUE)
+```
+
+```{r}
+DoHeatmap(cluster.averages, features = unlist(TopFeatures(FlippedvsTissue.harm[["pca"]], balanced = TRUE)), size = 3, draw.lines = FALSE)
+```
+
+```{r}
+Trophs.tissue <- subset(FlippedvsTissue.harm, idents = c("CTBp", "CTB", "CTB-pf", "STB-1", "STB-2", "STB-3"))
+Trophs.tissue2 <- subset(FlippedvsTissue.harm, idents = c("CTB", "CTB-pf", "STB-1", "STB-2", "STB-3"))
+```
+
+```{r}
+DimPlot(Trophs.tissue, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC", "CTBp"="#990073"))
+DimPlot(Trophs.tissue2, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC"))
+```
+
+```{r}
+DimPlot(Trophs.tissue, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC","CTBp"="#990073"), split.by="stim")
+DimPlot(Trophs.tissue2, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC"), split.by="stim")
+```
+
+```{r}
+saveRDS(Trophs.tissue, file = "OrganoidvsTissue Term and First_FINAL.2.7.24.rds")
+saveRDS(Trophs.tissue2, file = "OrganoidvsTissue Term and First_noCTBp.FINAL.2.7.24.rds")
+```
+
+```{r}
+pt <- table(Idents(Trophs.tissue), (Trophs.tissue$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+ scale_fill_manual(values = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC", "CTBp"="#990073")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+pt <- table(Idents(Trophs.tissue2), (Trophs.tissue2$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+ scale_fill_manual(values = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC")) +
+  theme(legend.title = element_blank())
+```
+
+************
+***DeSeq2***
+************
+```{r}
+
+avg.FlippedvsTissue.harm.All <- as.data.frame(AggregateExpression(FlippedvsTissue.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+colnames(avg.FlippedvsTissue.harm.All) <- gsub("RNA.","",colnames(avg.FlippedvsTissue.harm.All))
+avg.FlippedvsTissue.harm.All$gene <- rownames(FlippedvsTissue.harm)
+
+cts <- avg.FlippedvsTissue.harm.All[,1:(ncol(avg.FlippedvsTissue.harm.All)-1)]
+coldata <- data.frame(Sample = colnames(avg.FlippedvsTissue.harm.All[,1:(ncol(avg.FlippedvsTissue.harm.All)-1)]),
+                      Condition = c("First",
+                                    "First",
+                                    "First",
+                                    "TO",
+                                    "TO",
+                                    "TO",
+                                    "Term",
+                                    "Term",
+                                    "Term"))
+
+avg.FlippedvsTissue.harm.All.dds <- DESeqDataSetFromMatrix(countData=cts,
+                                  colData=coldata,
+                                  design=~Condition)
+
+avg.FlippedvsTissue.harm.dds <- DESeq(avg.FlippedvsTissue.harm.All.dds)
+
+avg.FirstvsTerm.dds.Res <- results(avg.FlippedvsTissue.harm.dds,contrast = c("Condition","First","Term"))
+
+write.csv(avg.FirstvsTerm.dds.Res, file="avg.First vs Term.dds.Res.2.5.24.csv")
+
+avg.TOvsFirst.dds.Res <- results(avg.FlippedvsTissue.harm.dds,contrast = c("Condition","TO","First"))
+write.csv(avg.TOvsFirst.dds.Res, file="avg.TO vs First.dds.Res.2.5.24.csv")
+
+avg.TOvsTerm.dds.Res <- results(avg.FlippedvsTissue.harm.dds,contrast = c("Condition","TO","Term"))
+write.csv(avg.TOvsTerm.dds.Res, file="avg.TO vs Term.dds.Res.2.5.23.csv")
+```
+
+```{r}
+
+Perform.Pseudobulk <- function(FlippedvsTissue.harm, CountsDir, ResultsDir, Conditions, Contrast, SubsetName) {
+  dir.create(CountsDir, showWarnings = FALSE)
+  dir.create(ResultsDir, showWarnings = FALSE)
+  
+  AggCounts <- as.data.frame(AggregateExpression(FlippedvsTissue.harm, group.by = 'orig.ident', assays = 'SCT',  slot = 'count', verbose = FALSE))
+  colnames(AggCounts) <- gsub("RNA.","",colnames(AggCounts))
+  AggCounts$gene <- rownames(AggCounts)
+  setwd(CountsDir)
+  write.table(as.data.frame(AggCounts), file = "Aggregated counts FlippedvsTissue.harm.txt", sep="\t")
+  
+  cts <- AggCounts[,1:(ncol(AggCounts)-1)]
+  coldata <- data.frame(Sample = colnames(AggCounts[,1:(ncol(AggCounts)-1)]),
+                        Condition = Conditions
+  )
+  
+  dds <- DESeqDataSetFromMatrix(countData=cts,
+                                    colData=coldata,
+                                    design=~Condition)
+  
+  dds <- DESeq(dds)
+  
+  dds.Res <- results(dds,contrast = c("Condition",Contrast[1],Contrast[2]))
+  
+  setwd(ResultsDir)
+  write.table(as.data.frame(dds.Res), file = paste(sub("/","-",SubsetName),"_DESeq2_Res.txt", sep = ""), sep="\t")
+}
+
+Perform.Pseudobulk.On.All.Clusters <- function(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast){
+    #Get Cluster Names
+    clusters <- sort(as.character(unique(SeuratObj@active.ident)))
+
+    #Perform Pseudobulk
+    Perform.Pseudobulk(SeuratObj, CountsDir, ResultsDir, Conditions, Contrast, "All_Clusters")
+    for (i in 1:length(clusters)){
+      Perform.Pseudobulk(subset(SeuratObj, idents = clusters[i]), CountsDir, ResultsDir, Conditions, Contrast, clusters[i])
+    }
+}
+```
+
+# Perform pseudobulk on all clusters
+```{r}
+Perform.Pseudobulk.On.All.Clusters(FlippedvsTissue.harm,
+                                   "/path/to/ TO vs Term vs First/Counts",
+                                   "/path/to/ TO vs Term vs First/Results",
+                                    Condition = c("First",
+                                    "First",
+                                    "First",
+                                    "TO",
+                                    "TO",
+                                    "TO",
+                                    "Term",
+                                    "Term",
+                                    "Term"),
+                                   Contrast = c("First","Term")
+                                   )
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2 <- function(InputDir, ResultsDir, log2.fc, padj) {
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    DESeqData <- DESeqData[abs(DESeqData$log2FoldChange) > log2.fc,]
+    DESeqData <- DESeqData[DESeqData$padj < padj,]
+    DESeqData <- DESeqData[complete.cases(DESeqData),]
+    DESeqData <- DESeqData[order(DESeqData$log2FoldChange),]
+    na.omit(DESeqData)
+    setwd(ResultsDir)
+    write.table(as.data.frame(DESeqData), file = paste(sub(".txt","",FilesNames[i]),"_Sig.txt", sep = ""), sep="\t")
+  }
+}
+
+Make.Nice.Volcano.Plot.PDF <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    pdf(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.pdf", sep = ""),
+        width = 8.5,
+        height = 11)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+
+Make.Nice.Volcano.Plot.PNG <- function(InputDir, ResultsDir, log2.fc, padj){
+  dir.create(ResultsDir, showWarnings = FALSE)
+  FilesNames <- list.files(InputDir)
+  for (i in 1:length(FilesNames)){
+    setwd(InputDir)
+    DESeqData <- read.table(FilesNames[i], as.is=TRUE, na.strings=c(NA, "NA", " NA"))
+    setwd(ResultsDir)
+    png(file = paste(sub(".txt","",FilesNames[i]),"_Volcano.png", sep = ""),
+        width = 850,
+        height = 1100)
+        p1 <- EnhancedVolcano(DESeqData, 
+                lab=rownames(DESeqData), 
+                x='log2FoldChange', 
+                y='padj', 
+                pCutoff=padj, 
+                FCcutoff=log2.fc, 
+                pointSize=5, 
+                labSize=5, 
+                title= sub(".txt","",FilesNames[i]), 
+                cutoffLineCol = 'black', 
+                cutoffLineWidth = 0.2, 
+                gridlines.major=FALSE, 
+                gridlines.minor=FALSE,
+                col=c('gray40', 'gray40', 'gray40', 'red3')
+                )
+        plot(p1)
+      dev.off()
+  }
+}
+```
+
+```{r}
+Apply.Thresholds.to.DESeq2("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+
+```{r}
+Perform.Pseudobulk.On.All.Clusters(FlippedvsTissue.harm,
+                                   "/path/to/ TO vs Term vs First/Counts",
+                                   "/path/to/ TO vs Term vs First/Results",
+                                    Condition = c("First",
+                                    "First",
+                                    "First",
+                                    "TO",
+                                    "TO",
+                                    "TO",
+                                    "Term",
+                                    "Term",
+                                    "Term"),
+                                   Contrast = c("TO","First")
+                                   )
+```
+
+```{r}
+
+Apply.Thresholds.to.DESeq2("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+
+```{r}
+Perform.Pseudobulk.On.All.Clusters(FlippedvsTissue.harm,
+                                   "/path/to/ TO vs Term vs First/Counts",
+                                   "/path/to/ TO vs Term vs First/Results",
+                                    Condition = c("First",
+                                    "First",
+                                    "First",
+                                    "TO",
+                                    "TO",
+                                    "TO",
+                                    "Term",
+                                    "Term",
+                                    "Term"),
+                                   Contrast = c("TO","Term")
+                                   )
+```
+
+```{r}
+
+Apply.Thresholds.to.DESeq2("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Significant DEGs",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PDF("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Volcanos",
+                           log2.fc = 2,
+                           padj = 0.05)
+Make.Nice.Volcano.Plot.PNG("/path/to/ TO vs Term vs First/Results",
+                           "/path/to/ TO vs Term vs First/Volcanos PNG",
+                           log2.fc = 2,
+                           padj = 0.05)
+```
+
+```{r}
+VariableFeatures(Trophs.tissue[["SCT"]]) <- rownames(Trophs.tissue[["SCT"]]@scale.data)
+Trophs.tissue.harm <- RunPCA(Trophs.tissue, assay = "SCT", npcs = 50, group.by.vars="stim")
+
+```
+
+```{r}
+VariableFeatures(Trophs.tissue2[["SCT"]]) <- rownames(Trophs.tissue2[["SCT"]]@scale.data)
+Trophs.tissue.harm2 <- RunPCA(Trophs.tissue2, assay = "SCT", npcs = 50, group.by.vars="stim")
+
+```
+
+```{r}
+Trophs.tissue.harm  <- RunUMAP(Trophs.tissue.harm, reduction = "harmony", assay = "SCT", dims = 1:40)
+Trophs.tissue.harm  <- FindNeighbors(Trophs.tissue.harm, reduction = "harmony")
+DefaultAssay(Trophs.tissue.harm)  <- "SCT"
+Trophs.tissue.harm <- FindClusters(Trophs.tissue.harm, reduction = "harmony", resolution = 0.2)
+```
+
+```{r}
+Trophs.tissue.harm2  <- RunUMAP(Trophs.tissue.harm2, reduction = "harmony", assay = "SCT", dims = 1:40)
+Trophs.tissue.harm2  <- FindNeighbors(Trophs.tissue.harm2, reduction = "harmony")
+DefaultAssay(Trophs.tissue.harm2)  <- "SCT"
+Trophs.tissue.harm2 <- FindClusters(Trophs.tissue.harm2, reduction = "harmony", resolution = 0.2)
+```
+
+```{r}
+DimPlot(Trophs.tissue.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(Trophs.tissue.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+         label.size = 5)
+```
+
+```{r}
+DimPlot(Trophs.tissue.harm2, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+DimPlot(Trophs.tissue.harm2, reduction = "umap", split.by="stim", pt.size = 1, label=T,
+         label.size = 5)
+```
+
+```{r}
+DimPlot(Trophs.tissue.harm, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols=c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC", "CTBp"="#990073"))
+DimPlot(Trophs.tissue.harm, reduction = "umap", split.by="stim", pt.size = 1, label=T,label.size = 5, cols=c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC", "CTBp"="#990073"))
+```
+
+```{r}
+DimPlot(Trophs.tissue.harm2, reduction = "umap", pt.size = 1, label.size = 5, label=T, cols=c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC"))
+DimPlot(Trophs.tissue.harm2, reduction = "umap", split.by="stim", pt.size = 1, label=T,label.size = 5, cols=c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC"))
+```
+
+```{r}
+saveRDS(Trophs.tissue.harm, file = "TOs vs Tissue_Trophs only.tissue.harm.2.7.24.rds")
+saveRDS(Trophs.tissue.harm2, file = "TOs vs Tissue_Trophs only.tissue.harm.noCTBp.2.7.24.rds")
+```
+
+```{r}
+pt <- table(Idents(Trophs.tissue.harm), (Trophs.tissue.harm$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+ scale_fill_manual(values = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC", "CTBp"="#990073")) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+DefaultAssay(Trophs.tissue.harm)  <- "RNA"
+Trophs.tissue.harm.markers <- FindAllMarkers(object = Trophs.tissue.harm, thresh.use = 0.25, min.pct = 0.25, only.pos = TRUE)
+```
+
+```{r}
+write.csv(Trophs.tissue.harm.markers, file="Trophs.tissue.harm.markers.2.6.24.csv")
+```
+
+```{r}
+pt <- table(Idents(Trophs.tissue.harm2), (Trophs.tissue.harm2$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+  theme_bw(base_size = 15) +
+  geom_col(position = "fill", width = 0.5) +
+  xlab("Sample") +
+  ylab("Proportion") +
+ scale_fill_manual(values = c("STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#44CC3D", "CTB"= "#F64DFF", "CTB-pf"="#8500CC")) +
+  theme(legend.title = element_blank())
+```
+
+************************
+************************
+#Slingshot
+************************
+************************
+
+```{r}
+FlippedvsMG <- readRDS("<replace_with_public_path>")
+EVTvsMG <- readRDS("<replace_with_public_path>")
+cluster.ids <- c("CTB-1",
+                  "STB",
+                  "EVT",
+                  "CTBp",
+                  "CTB-2",
+                  "CTBpf")
+names(cluster.ids) <- levels(EVTvsMG.harm)
+EVTvsMG.harm <- RenameIdents(EVTvsMG.harm, cluster.ids)
+print(levels(EVTvsMG.harm))
+
+EVTtraj <- subset(EVTvsMG.harm, idents = c("CTB-1", "CTB-2", "CTBp", "EVT"))
+DefaultAssay(FlippedvsMG)  <- "SCT"
+DefaultAssay(EVTtraj)  <- "SCT"
+FlippedvsMG.sce <- as.SingleCellExperiment(FlippedvsMG)
+EVTtraj.sce <- as.SingleCellExperiment(EVTtraj)
+```
+
+```{r}
+DimPlot(EVTvsMG.harm, reduction = "umap", pt.size = 1, label.size = 5, label=F, cols=c(c("CTBp" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF", "CTBpf" = "#8500CC","STB"="darkgreen", "EVT"="#0D00FF")))
+```
+
+```{r}
+pt <- table(Idents(EVTvsMG.harm), (EVTvsMG.harm$stim))
+pt <- as.data.frame(pt)
+pt$Var1 <- as.character(pt$Var1)
+ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+         theme_bw(base_size = 15) +
+         geom_col(position = "fill", width = 0.5) +
+         xlab("Sample") +
+         ylab("Proportion") +
+         scale_fill_manual(values = c("CTBp" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF", "CTBpf" = "#8500CC","STB"="darkgreen", "EVT"="#0D00FF"))
+```
+
+```{r}
+FlippedvsMG.scecl <- slingshot(FlippedvsMG.sce, clusterLabels = 'ident', reducedDim = "UMAP",allow.breaks = FALSE)
+
+EVTtraj.scecl <- slingshot(EVTtraj.sce, clusterLabels = 'ident', reducedDim = "PCA",allow.breaks = FALSE)
+```
+
+```{r}
+slo <- SlingshotDataSet(FlippedvsMG.scecl)
+slo
+slo2 <- SlingshotDataSet(EVTtraj.scecl)
+slo2
+```
+
+```{r}
+counts <- as.matrix(FlippedvsMG@assays$RNA@counts)
+filt_counts <- counts[rowSums(counts > 5) > ncol(counts)/100, ]
+BPPARAM <- BiocParallel::bpparam()
+BPPARAM$workers <- 7
+gamList_FlippedvsMG <- fitGAM(filt_counts,
+                       sds=slo,
+                       nknots = 4, sce = FALSE, verbose=TRUE)
+```
+
+```{r}
+sce <- fitGAM(counts = filt_counts, sds=slo,
+               nknots = 4, verbose = TRUE, conditions =as.factor(FlippedvsMG$stim))
+```
+
+```{r}
+startRes <- startVsEndTest(sce,l2fc = log2(2))
+order <- order(startRes$waldStat, decreasing = TRUE)
+startRes30 <- names(sce)[order[1:100]]
+```
+
+```{r}
+assoRes_FlippedvsMG <- associationTest(sce, lineages = TRUE)
+write.csv(assoRes_FlippedvsMG, file="assoRes_FlippedvsMG.4.2.24.csv")
+```
+
+```{r}
+p.adjusted <- p.adjust(assoRes_FlippedvsMG$pvalue, method = "fdr")
+assoRes_FlippedvsMG$adjustedPValue <- p.adjusted
+significantGenes <- assoRes_FlippedvsMG[which(assoRes_FlippedvsMG$adjustedPValue < 0.05), ]
+write.csv(significantGenes, file="assoRes_FlippedvsMG.significantGenes.4.2.24.csv")
+```
+
+```{r}
+start2 <- startVsEndTest(sce, l2fc = log2(2))
+
+```
+
+```{r}
+FlippedvsMG.compare <- conditionTest(sce ,global = TRUE, pairwise = TRUE, l2fc = 0, eigenThresh = 0.01, lineages = TRUE)
+write.csv(FlippedvsMG.compare, file="assoRes_FlippedvsMG.compare.4.2.24.csv")
+```
+
+```{r}
+associationResults_stim <- associationTest(sce, metadata = data.frame(condition = condition))
+write.csv(associationResults_stim, file="assoRes_FlippedvsMG_split by stim.4.2.24.csv")
+```
+
+```{r}
+counts2 <- as.matrix(EVTtraj@assays$RNA@counts)
+filt_counts2 <- counts2[rowSums(counts2 > 5) > ncol(counts2)/100, ]
+sce2 <- fitGAM(counts = filt_counts2, sds=slo2,
+               nknots = 4, verbose = TRUE, conditions =as.factor(EVTtraj$stim))
+```
+
+```{r}
+assoRes_EVTvsMG <- associationTest(sce2, lineages = TRUE)
+write.csv(assoRes_EVTvsMG, file="assoRes_EVTvsMG.4.2.24.csv")
+```
+
+```{r}
+p.adjusted2 <- p.adjust(assoRes_EVTvsMG$pvalue, method = "fdr")
+assoRes_EVTvsMG$adjustedPValue <- p.adjusted2
+significantGenes2 <- assoRes_EVTvsMG[which(assoRes_EVTvsMG$adjustedPValue < 0.05), ]
+write.csv(significantGenes2, file="assoRes_EVTvsMG.significantGenes.4.2.24.csv")
+```
+
+```{r}
+EVTvsMG.compare <- conditionTest(sce2,global = TRUE, pairwise = TRUE, l2fc = 0, eigenThresh = 0.01, lineages = TRUE)
+write.csv(EVTvsMG.compare, file="assoRes_EVTvsMG.compare.4.2.24.csv")
+```
+
+```{r}
+plotExpression(FlippedvsMG.scecl, "CYP19A1", x = "slingPseudotime_1",
+               colour_by = "ident", show_violin = FALSE, show_smooth = TRUE, point_size=3.0) + scale_color_manual(values=c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTB-pf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"))
+plotExpression(hCOTO.scecl, "CRH", x = "slingPseudotime_1",
+               colour_by = "ident", show_violin = FALSE, show_smooth = TRUE, point_size=3.0) + scale_color_manual(values=c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTBpf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"))
+```
+
+```{r}
+plotExpression(EVTtraj.scecl, "", x = "slingPseudotime_1",
+               colour_by = "ident", show_violin = FALSE, show_smooth = TRUE, point_size=3.0) + scale_color_manual(values=c("CTBp" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","EVT"="#0D00FF"))
+```
+
+```{r}
+counts <- as.matrix(EVTvsMG@assays$RNA@counts)
+filt_counts <- counts[rowSums(counts > 5) > ncol(counts)/100, ]
+BPPARAM <- BiocParallel::bpparam()
+BPPARAM$workers <- 7
+gamList_hCOTO <- fitGAM(filt_counts,
+                       sds=EVTsds,
+                       nknots = 7, sce = FALSE, verbose=TRUE)
+```
+
+***VlnPlots***
+```{r}
+
+FlippedvsMG$custom_cluster_names <- cluster_names[FlippedvsMG$seurat_clusters + 1]
+VlnPlot(object = FlippedvsMG, features = c("RYBP", "AFF1"), group.by = "custom_cluster_names")
+VlnPlot(object = FlippedvsMG, features = c("RYBP", "AFF1"), group.by = "custom_cluster_names", cols = c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTB-pf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"))
+```
+
+***Sort***
+```{r}
+VlnPlot(object = FlippedvsMG, features = c("alra_RYBP", "alra_AFF1"), group.by = "custom_cluster_names", cols = c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTB-pf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"), sort=T)
+VlnPlot(object = FlippedvsMG, features = c("alra_RYBP", "alra_AFF1"), group.by = "custom_cluster_names", cols = c("CTB-p" ="#FF7300", "CTB-1" = "#CC3D7D", "CTB-2"= "#F64DFF","CTB-3" ="#99173E", "CTB-pf" = "#8500CC","STB-1"="darkgreen", "STB-2"="#369900", "STB-3"="#2E9969"), sort=T, pt.size=0)
+VlnPlot(object = FlippedvsMG, features = c("alra_RYBP", "alra_AFF1"), group.by = "custom_cluster_names", cols = c("darkgreen", "#8500CC"), sort=T, pt.size=0, split.by = "stim")
+```
+
+*******************
+#fitGam
+*********************
+
+```{r}
+library(tradeSeq)
+counts <- as.matrix(TO@assays$RNA@counts)
+dim(counts)
+filt_counts <- counts[rowSums(counts > 5) > ncol(counts)/100, ]
+dim(filt_counts)
+icMat_TO <- evaluateK(counts = filt_counts, k=3:9, nGenes = 100, sds=SlingshotDataSet(TO.scecl), verbose=TRUE)
+pseudotime <- slingPseudotime(TO.scecl, na=FALSE)
+cellWeights <- slingCurveWeights(TO.scecl)
+
+DefaultAssay(Flipped)  <- "integrated"
+Trophs.var <- FindVariableFeatures(Flipped, selection.method = "vst", nfeatures = 3000)
+genes_to_test <- VariableFeatures(Trophs.var)[1:2000]
+```
+
+#Pathway analysis
+http/path/to/
+```{r}
+FlippedvsMG <- read.table("<replace_with_public_path>")
+
+FlippedvsMG$symbol <- mapIds(org.Hs.eg.db, keys=row.names( FlippedvsMG), column="SYMBOL", keytype="GENENAME", multiVals="first")
+
+fc.kegg.sigmet.p <- gage(FlippedvsMG.fc, gsets = kegg.sigmet.gs)
+fc.kegg.dise.p <- gage(FlippedvsMG.fc, gsets = kegg.dise.gs)
+fc.go.bp.p <- gage(FlippedvsMG.fc, gsets = go.bp.gs)
+fc.go.mf.p <- gage(FlippedvsMG.fc, gsets = go.mf.gs)
+fc.go.cc.p <- gage(FlippedvsMG.fc, gsets = go.cc.gs)
+fc.kegg.sigmet.p.up <- as.data.frame(fc.kegg.sigmet.p$greater)
+fc.kegg.dise.p.up <- as.data.frame(fc.kegg.dise.p$greater)
+
+fc.kegg.sigmet.p.down <- as.data.frame(fc.kegg.sigmet.p$less)
+fc.kegg.dise.p.down <- as.data.frame(fc.kegg.dise.p$less)
+fc.go.bp.p.up <- as.data.frame(fc.go.bp.p$greater)
+fc.go.mf.p.up <- as.data.frame(fc.go.mf.p$greater)
+fc.go.cc.p.up <- as.data.frame(fc.go.cc.p$greater)
+ 
+fc.go.bp.p.down <- as.data.frame(fc.go.bp.p$less)
+fc.go.mf.p.down <- as.data.frame(fc.go.mf.p$less)
+fc.go.cc.p.down <- as.data.frame(fc.go.cc.p$less)
+```
+
+```{r}
+BiocManager::install("pathview")
+
+```
+
+****Subset STB for traj****
+```{r}
+FlippedvsMG.harm <- readRDS("<replace_with_public_path>")
+STBtraj <- subset(FlippedvsMG.harm, idents = c("VCT-1", "pre-STB", "STB-1", "STB-2", "STB-3"))
+DimPlot(STBtraj, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+```
+
+```{r}
+STBtraj <- subset(FlippedvsMG.harm, idents = c("VCT-1", "pre-STB", "STB-1", "STB-2", "STB-3"))
+DimPlot(STBtraj, reduction = "umap", pt.size = 1, label.size = 5, label=T)
+STBtraj2 <- CreateSeuratObject(counts = STBtraj[['RNA']]@counts, project = "STBtraj")
+STBtraj2@meta.data <- STBtraj@meta.data
+STBtraj2.list <- SplitObject(STBtraj2, split.by = "orig.ident")
+STBtraj2.list <- lapply(STBtraj2.list, FUN = SCTransform, assay = 'RNA', new.assay.name = 'SCT',  vars.to.regress = c('percent.mt','percent.rb', 'nFeature_RNA', 'nCount_RNA', 'pct_chrX', 'pct_chrY'), vst.flavor = "v2")
+```
+
+```{r}
+STBtraj2.list.features <- SelectIntegrationFeatures(object.list = STBtraj2.list, nfeatures = 3000)
+STBtraj2.list <- PrepSCTIntegration(object.list = STBtraj2.list, anchor.features = STBtraj2.list.features)
+STBtraj2.list.anchors <- FindIntegrationAnchors(object.list = STBtraj2.list, normalization.method = "SCT", anchor.features = STBtraj2.list.features)
+STBtraj2.list.int <- IntegrateData(anchorset = STBtraj2.list.anchors, normalization.method = "SCT")
+```
+
+```{r}
+STBtraj2.list.int <- RunPCA(STBtraj2.list.int, assay = "integrated", npcs = 50)
+```
+
+```{r}
+ElbowPlot(STBtraj2.list.int, reduction = "pca", ndims = 50)
+```
+
+```{r}
+STBtraj2.list.int  <- RunUMAP(STBtraj2.list.int, reduction = "pca", assay = "integrated", dims = 1:40)
+STBtraj2.list.int  <- FindNeighbors(STBtraj2.list.int, reduction = "pca")
+```
+
+```{r}
+DimPlot(STBtraj2.list.int)
+```
+
+```{r}
+STBtraj2.list.int <- FindClusters(STBtraj2.list.int, resolution = 0.4)
+```
+
+```{r}
+DimPlot(STBtraj2.list.int, reduction = "umap", pt.size = 1, label.size = 7, label=T)
+DimPlot(STBtraj2.list.int, reduction = "umap", pt.size = 1, label.size = 7, label=T, split.by="stim")
+DimPlot(STBtraj2.list.int, reduction = "umap", pt.size = 1, label.size = 7, label=T, split.by="orig.ident")
+ 
+
+```
+
+```{r}
+DefaultAssay(STBtraj2.list.int) <- "integrated"
+STBtraj2.list.int.sce <- as.SingleCellExperiment(STBtraj2.list.int)
+STBtraj2.list.int.sce <- slingshot(STBtraj2.list.int.sce, clusterLabels = 'ident', reducedDim = "UMAP", start.clus = "3",
+                      allow.breaks = FALSE)
+```
+
+```{r}
+library(grDevices)
+colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
+plotcol <- colors[cut(STBtraj2.list.int.sce$slingPseudotime_1, breaks=100)]
+
+plot(reducedDims(STBtraj2.list.int.sce)$UMAP, col = plotcol, pch=16, asp = 1) + lines(slingCurves(SlingshotDataSet(STBtraj2.list.int.sce))[[1]], lwd=2, col='black')
+
+colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
+plotcol <- colors[cut(STBtraj2.list.int.sce$slingPseudotime_2, breaks=100)]
+
+plot(reducedDims(STBtraj2.list.int.sce)$UMAP, col = plotcol, pch=16, asp = 1) + lines(slingCurves(SlingshotDataSet(STBtraj2.list.int.sce))[[2]], lwd=2, col='black')
+
+#Make Nice plots on Seurat Dimplot
+
+Curves <- slingCurves(STBtraj2.list.int.sce)
+
+Curve1XY <- data.frame(X = Curves$Lineage1$s[,1], Y = Curves$Lineage1$s[,2])
+Curve2XY <- data.frame(X = Curves$Lineage2$s[,1], Y = Curves$Lineage2$s[,2])
+
+p1 <- DimPlot(STBtraj2.list.int.sce, reduction = "umap", pt.size = 1) + geom_path(data=Curve1XY, aes(x=X, y=Y), size = 2) + geom_path(data=Curve2XY, aes(x=X, y=Y), size = 2)
+
+STBtraj2.list.int.sce$pseudotime1 <- STBtraj2.list.int.sce$slingPseudotime_1
+STBtraj2.list.int.sce$pseudotime2 <- STBtraj2.list.int.sce$slingPseudotime_2
+
+p2 <- FeaturePlot(STBtraj2.list.int.sce, features = "pseudotime1", pt.size = 1, cols = colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)) + geom_path(data=Curve1XY, aes(x=X, y=Y), size = 2)
+
+p3 <- FeaturePlot(STBtraj2.list.int.sce, features = "pseudotime2", shape.by = NULL, pt.size = 1, cols = colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)) + geom_path(data=Curve2XY, aes(x=X, y=Y), size = 2)
+```
+
+```{r}
+saveRDS(HSV1.high.harm.int, file = "STBsubset for traj_1.12.24.rds")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <htt/path/to/
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
